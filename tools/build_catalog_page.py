@@ -6,6 +6,7 @@ import html
 import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 
 def value(node):
@@ -40,6 +41,12 @@ def main():
     if root.get('batch_id') != manifest['batch_id']:
         raise ValueError('Batch ID differs from manifest')
     products = [value(node) for node in root.findall('product')]
+    for product in products:
+        image = product.get('provenance', {}).get('product_jsonld', {}).get('image')
+        if isinstance(image, str):
+            image_url = urljoin('https://eltex.ru/', image)
+            if urlsplit(image_url).scheme == 'https' and urlsplit(image_url).netloc == 'eltex.ru':
+                product['display_image'] = image_url
     if len(products) != manifest['record_count']:
         raise ValueError('Record count differs from manifest')
     payload = {'manifest': manifest, 'products': products}
