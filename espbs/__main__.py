@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import signal
 from pathlib import Path
 
 from .archive import export_batch, verify_archive
@@ -25,9 +26,35 @@ def main():
     export.add_argument("--output", default="exports")
     verify = commands.add_parser("verify", help="Verify a downloaded archive without a database")
     verify.add_argument("file", type=Path)
+    collect = commands.add_parser('collect', help='Collect a bounded Eltex batch')
+    collect.add_argument('source', choices=['eltex'])
+    collect.add_argument('--limit', type=int, default=3)
+    commands.add_parser('runs')
+    for name in ('resume', 'stop', 'run-status', 'events'):
+        command = commands.add_parser(name)
+        command.add_argument('job_id')
     args = parser.parse_args()
     try:
-        if args.command == "new":
+        if args.command in ('collect', 'resume', 'stop', 'run-status', 'events', 'runs'):
+            from .jobs import Job
+            if args.command == 'runs':
+                result = [Job(args.data_dir, p.stem).info() for p in
+                          sorted((Path(args.data_dir) / 'jobs').glob('*.sqlite3'))]
+            else:
+                job = Job.create(args.data_dir, args.limit) if args.command == 'collect' else Job(args.data_dir, args.job_id)
+                if args.command in ('collect', 'resume'):
+                    previous = signal.signal(signal.SIGTERM, lambda *_: job.stop())
+                    try:
+                        result = job.run(callback=lambda event: print(json.dumps(event, ensure_ascii=False), file=sys.stderr, flush=True))
+                    finally:
+                        signal.signal(signal.SIGTERM, previous)
+                elif args.command == 'events':
+                    result = job.events()
+                else:
+                    if args.command == 'stop':
+                        job.stop()
+                    result = job.info()
+        elif args.command == "new":
             result = Batch.create(args.data_dir).info()
         elif args.command == "list":
             result = [Batch(args.data_dir, path.stem).info()
@@ -55,7 +82,7 @@ def main():
                             raise ValueError(f"Line {line_number}: {error}; earlier records remain saved") from error
                 result = {**batch.info(), "import": counts}
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+        return 1 if isinstance(result, dict) and result.get('state') == 'FAILED' else 0
     except Exception as error:
         print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
         return 1

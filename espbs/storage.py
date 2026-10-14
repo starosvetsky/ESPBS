@@ -3,7 +3,7 @@
 import hashlib
 import json
 import sqlite3
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -127,7 +127,10 @@ class Batch:
             return "updated" if previous else "inserted"
 
     def seal(self):
-        with self.connection() as db:
+        from .jobs import worker_lock
+        job_path = self.path.parent.parent / 'jobs' / (self.id + '.sqlite3')
+        lock = worker_lock(job_path.with_suffix('.lock')) if job_path.exists() else nullcontext()
+        with lock, self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             if not db.execute("SELECT 1 FROM records LIMIT 1").fetchone():
                 raise ValueError("Cannot export an empty batch")

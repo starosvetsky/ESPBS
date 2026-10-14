@@ -19,5 +19,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Test persistence and archive failure paths
+      - run: python -m pip install -r requirements-parser.txt
+      - name: Test persistence, source jobs and archive failure paths
         run: python -m unittest discover -s tests -v
