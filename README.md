@@ -16,7 +16,7 @@ python -m espbs --data-dir data serve
 
 Откройте `http://127.0.0.1:8765`. API намеренно слушает только loopback; внешний доступ требует отдельной аутентификации и TLS.
 
-[План и состояние этапов](docs/PLAN.md) · [Локальная панель и API](docs/API.md) · [Команды ядра и формат архивов](docs/ARCHIVES.md) · [Сбор Eltex](docs/COLLECTION.md)
+[План и состояние этапов](docs/PLAN.md) · [Панель и API](docs/API.md) · [Развёртывание на Selectel](docs/DEPLOYMENT.md) · [Команды ядра и формат архивов](docs/ARCHIVES.md) · [Сбор Eltex](docs/COLLECTION.md)
 
 Первый шаг: партии в SQLite, сохранение записей по мере поступления, XML внутри ZIP и независимая проверка архива. Python 3.12+, для ядра сторонние зависимости не нужны.
 

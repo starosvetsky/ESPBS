@@ -1,0 +1,23 @@
+[Unit]
+Description=ESPBS collection dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=espbs
+Group=espbs
+WorkingDirectory=/opt/espbs
+ExecStart=/opt/espbs/.venv/bin/python -m espbs --data-dir /var/lib/espbs serve
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/espbs
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
