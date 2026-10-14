@@ -93,6 +93,27 @@ class Job:
                 'SELECT quality,count(*) FROM items WHERE done=1 GROUP BY quality')}
         return result
 
+    def reconcile(self):
+        """Turn an orphaned RUNNING marker into a visible failure.
+
+        The database state is not proof that a worker is alive.  The lock is
+        the authority and survives API restarts because the worker owns it.
+        """
+        result = self.info()
+        if result['state'] != 'RUNNING':
+            return result
+        try:
+            with worker_lock(self.path.with_suffix('.lock')):
+                pass
+        except ValueError:
+            return result
+        error = 'Worker process is no longer running; saved progress is available'
+        with self.db() as db:
+            db.execute("UPDATE job SET state='FAILED',error=?,updated_at=? WHERE state='RUNNING'",
+                       (error, utc_now()))
+        self.event('worker_lost', {'error': error}, None)
+        return self.info()
+
     def stop(self):
         with self.db() as db:
             db.execute('UPDATE job SET stop=1')
@@ -110,9 +131,18 @@ class Job:
         if callback:
             callback(event)
 
-    def events(self):
+    def events(self, after=0, limit=100):
+        if after < 0 or not 1 <= limit <= 200:
+            raise ValueError('Invalid event cursor or limit')
         with self.db() as db:
-            return [dict(row) for row in db.execute('SELECT * FROM events ORDER BY seq')]
+            rows = db.execute('SELECT * FROM events WHERE seq>? ORDER BY seq LIMIT ?',
+                              (after, limit))
+            result = []
+            for row in rows:
+                event = dict(row)
+                event.update(json.loads(event.pop('detail')))
+                result.append(event)
+            return result
 
     def run(self, client=None, callback=None):
         from .eltex import Client, Stopped, listing, product

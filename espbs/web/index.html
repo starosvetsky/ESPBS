@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESPBS — управление сбором</title><link rel="stylesheet" href="/app.css"></head>
+<body><header><div><b>ESPBS</b><span>COLLECTION CONTROL</span></div><span id="connection" class="badge offline">Подключение…</span></header>
+<main>
+  <section class="intro"><div><p class="eyebrow">ЭТАП 03 / УПРАВЛЕНИЕ</p><h1>Сбор данных<br><em>под контролем.</em></h1><p>Ограниченные задания Eltex сохраняются на сервере и продолжают работу независимо от открытого окна.</p></div>
+  <form id="new-job"><label>Лимит товаров<input id="limit" type="number" min="1" max="100" value="3"></label><button>Запустить Eltex</button><small>Лимит задания — не размер всего каталога.</small></form></section>
+  <section class="layout">
+    <aside><div class="section-title"><span>ЗАДАНИЯ</span><button id="refresh" class="ghost">Обновить</button></div><div id="jobs" class="jobs"><p class="empty">Загрузка…</p></div></aside>
+    <article id="detail"><div class="empty large">Выберите задание</div></article>
+  </section>
+</main><template id="detail-template"><div class="detail-head"><div><p class="eyebrow">АКТИВНОЕ ЗАДАНИЕ</p><h2 id="job-title"></h2></div><div class="actions"><button id="stop">Остановить</button><button id="resume">Продолжить</button></div></div>
+<div class="metrics"><div><span>Состояние</span><strong id="state"></strong></div><div><span>Найдено</span><strong id="discovered"></strong></div><div><span>Сохранено</span><strong id="completed"></strong></div><div><span>Лимит</span><strong id="target"></strong></div></div>
+<p id="error" class="error"></p><div class="columns"><section><h3>Последние товары</h3><div id="products"></div></section><section><h3>Журнал</h3><div id="events" class="events"></div></section></div></template>
+<script src="/app.js"></script></body></html>

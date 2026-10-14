@@ -141,6 +141,16 @@ class Batch:
             for row in db.execute("SELECT * FROM records ORDER BY record_id"):
                 yield dict(row)
 
+    def products(self, after='', limit=50):
+        if not isinstance(after, str) or not 1 <= limit <= 100:
+            raise ValueError('Invalid product cursor or limit')
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT record_id,payload,collected_at FROM records "
+                "WHERE record_id>? ORDER BY record_id LIMIT ?", (after, limit))
+            return [{'cursor': row['record_id'], 'collected_at': row['collected_at'],
+                     'product': json.loads(row['payload'])} for row in rows]
+
     def mark_archived(self, digest):
         with self.connection() as db:
             db.execute("UPDATE batch SET state='ARCHIVED', archived_at=COALESCE(archived_at,?), "

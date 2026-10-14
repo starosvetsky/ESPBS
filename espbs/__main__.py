@@ -30,19 +30,28 @@ def main():
     collect.add_argument('source', choices=['eltex'])
     collect.add_argument('--limit', type=int, default=3)
     commands.add_parser('runs')
+    serve = commands.add_parser('serve', help='Run the local management API and dashboard')
+    serve.add_argument('--host', default='127.0.0.1')
+    serve.add_argument('--port', type=int, default=8765)
+    worker = commands.add_parser('worker', help=argparse.SUPPRESS)
+    worker.add_argument('job_id')
     for name in ('resume', 'stop', 'run-status', 'events'):
         command = commands.add_parser(name)
         command.add_argument('job_id')
     args = parser.parse_args()
     try:
-        if args.command in ('collect', 'resume', 'stop', 'run-status', 'events', 'runs'):
+        if args.command == 'serve':
+            from .api import serve
+            serve(args.data_dir, args.host, args.port)
+            return 0
+        if args.command in ('collect', 'resume', 'stop', 'run-status', 'events', 'runs', 'worker'):
             from .jobs import Job
             if args.command == 'runs':
                 result = [Job(args.data_dir, p.stem).info() for p in
                           sorted((Path(args.data_dir) / 'jobs').glob('*.sqlite3'))]
             else:
                 job = Job.create(args.data_dir, args.limit) if args.command == 'collect' else Job(args.data_dir, args.job_id)
-                if args.command in ('collect', 'resume'):
+                if args.command in ('collect', 'resume', 'worker'):
                     previous = signal.signal(signal.SIGTERM, lambda *_: job.stop())
                     try:
                         result = job.run(callback=lambda event: print(json.dumps(event, ensure_ascii=False), file=sys.stderr, flush=True))
