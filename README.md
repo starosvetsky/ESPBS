@@ -18,6 +18,8 @@ python -m espbs --data-dir data serve
 
 [План и состояние этапов](docs/PLAN.md) · [Панель и API](docs/API.md) · [Развёртывание на Selectel](docs/DEPLOYMENT.md) · [Команды ядра и формат архивов](docs/ARCHIVES.md) · [Сбор Eltex](docs/COLLECTION.md)
 
+Тестовая витрина одной проверенной выгрузки: [starosvetsky.ru/parser-results/](https://starosvetsky.ru/parser-results/). Она показывает товары, характеристики и ссылки на документы, но не является готовым магазином.
+
 Первый шаг: партии в SQLite, сохранение записей по мере поступления, XML внутри ZIP и независимая проверка архива. Python 3.12+, для ядра сторонние зависимости не нужны.
 
 ```shell

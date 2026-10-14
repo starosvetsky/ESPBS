@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Тестовая витрина данных, собранных ESPBS"><title>ESPBS — результат парсинга</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"></head>
+<body><header><a href="/" class="brand"><span class="mark">E</span><span>STAROSVETSKY.RU</span></a><nav><a href="/">Портфолио</a><a href="/espbs/">Панель ESPBS</a></nav></header>
+<main><section class="hero"><div><p class="eyebrow">ESPBS / ТЕСТОВАЯ ВЫГРУЗКА</p><h1>Что собрал<br><em>парсер.</em></h1><p class="lead">Живая проверка структуры каталога: товары, характеристики, документы и качество данных из XML-партии.</p></div><div class="batch"><span>Партия</span><strong id="batch-id">—</strong><div><b id="count">—</b><small>товаров</small></div><div><b id="collected">—</b><small>собрано</small></div></div></section>
+<section class="toolbar"><label><span>Поиск по каталогу</span><input id="search" type="search" placeholder="Например, MES2300 или 48 портов"></label><div class="filters"><button class="active" data-filter="all">Все</button><button data-filter="GOOD">Готовые</button><button data-filter="REVIEW">На проверке</button></div></section>
+<section><div class="section-head"><p><span id="visible-count">0</span> позиций</p><p>Источник: официальный каталог Eltex</p></div><div id="catalog" class="catalog"></div><p id="empty" class="empty" hidden>Ничего не найдено. Попробуйте другой запрос.</p></section></main>
+<dialog id="details"><button class="close" aria-label="Закрыть">×</button><div id="detail-content"></div></dialog>
+<footer><span>ESPBS · TEST DATA VIEW</span><span>Данные не являются готовым интернет-магазином</span><span>2026</span></footer>
+<script src="app.js"></script></body></html>
