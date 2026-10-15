@@ -95,9 +95,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def body(self):
         length = int(self.headers.get('Content-Length', '0'))
-        if length > 16 * 1024:
+        if not 0 <= length <= 16 * 1024:
             raise ValueError('Request body is too large')
-        return json.loads(self.rfile.read(length) or b'{}')
+        value = json.loads(self.rfile.read(length) or b'{}')
+        if not isinstance(value, dict):
+            raise ValueError('Expected JSON object')
+        return value
 
     def route(self):
         parsed = urlsplit(self.path)
@@ -111,6 +114,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            if self.path == '/api/directory':
+                from .directory import Directory
+                directory = Directory(self.server.root)
+                return self.send_json(200, {'manufacturers': directory.manufacturers(), 'mappings': directory.mappings()})
             if self.path == '/api/sources':
                 from .sources import REGISTRY
                 return self.send_json(200, {'sources': list(REGISTRY.values())})
@@ -124,6 +131,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_asset('app.js', 'text/javascript; charset=utf-8')
             if self.path == '/catalog.js':
                 return self.send_asset('catalog.js', 'text/javascript; charset=utf-8')
+            if self.path == '/workbench.js':
+                return self.send_asset('workbench.js', 'text/javascript; charset=utf-8')
             if self.path == '/favicon.svg':
                 return self.send_asset('favicon.svg', 'image/svg+xml')
             parts, query, job = self.route()
@@ -140,7 +149,9 @@ class Handler(BaseHTTPRequestHandler):
                 after = query.get('after', [''])[0]
                 limit = int(query.get('limit', ['50'])[0])
                 items = Batch(self.server.root, job.id).products(after, limit)
-                value = {'products': items, 'next_cursor': items[-1]['cursor'] if items else after}
+                cursor = items[-1]['cursor'] if items else after
+                value = {'products': items, 'next_cursor': cursor,
+                         'has_more': bool(items and Batch(self.server.root, job.id).products(cursor, 1))}
             elif len(parts) == 4 and parts[3] == 'archive':
                 path = self.server.root / 'exports' / (job.id + '.zip')
                 if not path.is_file():
@@ -162,16 +173,35 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
                 raise ValueError('Content-Type must be application/json')
+            if self.path in ('/api/probe', '/api/profiles', '/api/manufacturers', '/api/mappings'):
+                from .directory import Directory, probe
+                payload = self.body()
+                directory = Directory(self.server.root)
+                require_space(self.server.root, 256 * MIB)
+                if self.path == '/api/probe':
+                    value = probe(self.server.root, payload.get('url'), payload.get('selectors'))
+                elif self.path == '/api/profiles':
+                    value = directory.save_profile(payload.get('url'), payload.get('selectors', {}))
+                elif self.path == '/api/manufacturers':
+                    value = directory.save_manufacturer(payload)
+                else:
+                    value = directory.save_mapping(payload)
+                return self.send_json(200, value)
             parts, _, job = self.route()
             if len(parts) == 2:
                 payload = self.body()
                 job = Job.create(self.server.root, int(payload.get('limit', 3)),
                                  payload.get('source', 'eltex'), payload.get('start_url', ''),
-                                 payload.get('enrichment'))
+                                 payload.get('enrichment'), payload.get('selectors'),
+                                 payload.get('auto_enrich', False))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
-            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup'):
+            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich'):
                 raise FileNotFoundError('Route not found')
+            if parts[3] == 'enrich':
+                child = Job.create_enrichment(job)
+                launch_worker(self.server.root, child.id)
+                return self.send_json(202, child.info())
             if parts[3] == 'confirm-copy':
                 return self.send_json(200, confirm_copy(job, self.body()))
             if parts[3] == 'cleanup':

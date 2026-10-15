@@ -125,6 +125,24 @@ class APITests(unittest.TestCase):
             self.request('/api/jobs', 'POST', {'source': 'other', 'limit': 2})
         self.assertEqual(error.exception.code, 400)
 
+    @patch('espbs.api.launch_worker')
+    def test_directory_and_separate_enrichment_api(self, launch):
+        _, directory = self.request('/api/directory')
+        self.assertEqual(directory['manufacturers'][0]['brand'], 'Eltex')
+        self.request('/api/manufacturers', 'POST', {'brand':'Synthetic','home_url':'https://maker.example/'})
+        self.request('/api/mappings', 'POST', {'brand':'Synthetic','mpn':'S-1','url':'https://maker.example/s1'})
+        _, directory = self.request('/api/directory')
+        self.assertEqual(directory['mappings'][0]['mpn'], 's-1')
+        parent = Job.create(self.temp.name, 1)
+        Batch(self.temp.name,parent.id).add(record(1))
+        with parent.db() as db:
+            db.execute("UPDATE job SET state='COMPLETED'")
+        status, child = self.request('/api/jobs/'+parent.id+'/enrich','POST',{})
+        self.assertEqual(status,202)
+        self.assertEqual(child['source'],'enrichment')
+        self.assertEqual(child['parent_id'],parent.id)
+        launch.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

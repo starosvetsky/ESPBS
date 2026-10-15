@@ -1,20 +1,25 @@
-const $=s=>document.querySelector(s);let selected=null,eventCursor=0,timer,detailBusy=false;
+const $=s=>document.querySelector(s);let selected=null,eventCursor=0,timer,detailBusy=false,productCursors=[''];
 const api=async(path,options={})=>{const response=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const data=await response.json();if(!response.ok)throw new Error(data.error||'Ошибка API');return data};
 const stateName={PAUSED_DISK:'Мало места',READY:'Готово',RUNNING:'Выполняется',STOPPED:'Остановлено',COMPLETED:'Завершено',FAILED:'Ошибка'};
 function connection(ok){const el=$('#connection');el.textContent=ok?'API подключён':'Нет соединения';el.className='badge '+(ok?'online':'offline')}
 function jobButton(job){const b=document.createElement('button');b.className='job'+(selected===job.id?' active':'');b.innerHTML=`<span><b>${stateName[job.state]||job.state}</b><i>${job.completed}/${job.target}</i></span><small>${job.id.slice(0,8)} · ${escapeHtml(sourceLabel(job.source))}</small>`;b.onclick=()=>select(job.id);return b}
 async function loadJobs(){try{const data=await api('api/jobs');connection(true);const box=$('#jobs');box.innerHTML='';data.jobs.forEach(j=>box.append(jobButton(j)));if(!data.jobs.length)box.innerHTML='<p class="empty">Заданий пока нет</p>';if(selected){const found=data.jobs.find(j=>j.id===selected);if(found)render(found)}}catch(e){connection(false)}}
-async function select(id){selected=id;eventCursor=0;await loadJobs();await loadDetail()}
+async function select(id){selected=id;eventCursor=0;productCursors=[''];await loadJobs();await loadDetail()}
 function render(job){const host=$('#detail');if(!host.querySelector('#job-title'))host.replaceChildren($('#detail-template').content.cloneNode(true));$('#job-title').textContent=job.id;$('#state').textContent=stateName[job.state]||job.state;$('#discovered').textContent=job.discovered;$('#completed').textContent=job.completed;$('#target').textContent=job.target;$('#error').textContent=job.error||'';$('#stop').disabled=job.state!=='RUNNING';$('#resume').disabled=!['STOPPED','FAILED','READY','PAUSED_DISK'].includes(job.state);$('#stop').onclick=()=>action('stop');$('#resume').onclick=()=>action('resume');const ready=job.archive?.ready;$('#prepare').hidden=ready;$('#prepare').disabled=job.state!=='COMPLETED';$('#prepare').onclick=prepareArchive;$('#download').hidden=!ready;$('#download').href=`api/jobs/${job.id}/archive`;$('#archive-status').textContent=ready?'ZIP/XML готов к скачиванию':'Архив ещё не подготовлен';$('#archive-meta').textContent=ready?`${job.archive.record_count} товаров · ${formatBytes(job.archive.size)} · SHA-256 ${job.archive.sha256.slice(0,12)}…`:'Исходные записи останутся на сервере после скачивания.';renderRetention(job)}
 async function loadDetail(){
- if(!selected||detailBusy)return;detailBusy=true;const id=selected;
+ if(!selected||detailBusy)return;detailBusy=true;const id=selected;const cursor=productCursors[productCursors.length-1];
  try{
-  const [job,products,events]=await Promise.all([api(`api/jobs/${id}`),api(`api/jobs/${id}/products?limit=100`),api(`api/jobs/${id}/events?after=${eventCursor}&limit=100`)]);
-  if(id!==selected)return;render(job);
+  const [job,products,events]=await Promise.all([api(`api/jobs/${id}`),api(`api/jobs/${id}/products?limit=50&after=${encodeURIComponent(cursor)}`),api(`api/jobs/${id}/events?after=${eventCursor}&limit=100`)]);
+  if(id!==selected||cursor!==productCursors[productCursors.length-1])return;render(job);
   const box=$('#products');const fingerprint=JSON.stringify(products.products);
   if(box.dataset.content!==fingerprint){box.replaceChildren(...products.products.map(x=>productPreview(x.product)));box.dataset.content=fingerprint;if(!products.products.length)box.innerHTML='<p class="empty">Товаров пока нет</p>';}
+  $('#product-page').textContent=`Страница ${productCursors.length} · сохранено ${job.completed}`;
+  $('#prev-products').disabled=productCursors.length===1;$('#next-products').disabled=!products.has_more;
+  $('#prev-products').onclick=()=>{if(productCursors.length>1){productCursors.pop();loadDetail();}};
+  $('#next-products').onclick=()=>{if(products.has_more){productCursors.push(products.next_cursor);loadDetail();}};
   if(eventCursor===0)$('#events').innerHTML='';
   for(const e of events.events){const div=document.createElement('div');div.className='event';div.innerHTML=`<time>${new Date(e.time).toLocaleTimeString()}</time><span>${escapeHtml(e.kind)}${e.status?' · '+escapeHtml(e.status):''}${e.error?' · '+escapeHtml(e.error):''}</span>`;$('#events').append(div)}
+  while($('#events').childElementCount>300)$('#events').firstElementChild.remove();
   eventCursor=events.next_cursor;connection(true);
  }catch(e){connection(false)}finally{detailBusy=false}
 }
@@ -25,7 +30,7 @@ async function prepareArchive(){const button=$('#prepare');button.disabled=true;
 $('#new-job').onsubmit=async e=>{e.preventDefault();try{const job=await api('api/jobs',{method:'POST',body:JSON.stringify({source:$('#source').value,start_url:$('#start-url').value,enrichment:$('#enrichment').value,limit:Number($('#limit').value)})});await select(job.id)}catch(e){alert(e.message)}};$('#refresh').onclick=()=>{loadJobs();loadDetail()};
 timer=setInterval(()=>{loadJobs();loadDetail()},2000);
 
-async function loadStorage(){try{const d=await api('api/storage');$('#storage').textContent=`Диск: свободно ${formatBytes(d.free_bytes)} · резерв ${formatBytes(d.reserve_bytes)} · данные ${formatBytes(d.sizes.batches+d.sizes.jobs)} · архивы ${formatBytes(d.sizes.exports)}. ${d.can_collect?'Сбор разрешён.':'Сбор приостановлен: недостаточно места.'}`;$('#new-job button').disabled=!d.can_collect||!$('#source').value}catch(e){$('#storage').textContent='Не удалось получить состояние диска';$('#new-job button').disabled=true}}
+async function loadStorage(){try{const d=await api('api/storage');$('#storage').textContent=`Диск: свободно ${formatBytes(d.free_bytes)} · резерв ${formatBytes(d.reserve_bytes)} · данные ${formatBytes(d.sizes.batches+d.sizes.jobs+(d.sizes.directory||0))} · архивы ${formatBytes(d.sizes.exports)}. ${d.can_collect?'Сбор разрешён.':'Сбор приостановлен: недостаточно места.'}`;window.diskCanCollect=d.can_collect;if(typeof updateStartState==='function')updateStartState()}catch(e){$('#storage').textContent='Не удалось получить состояние диска';window.diskCanCollect=false;$('#start').disabled=true}}
 setInterval(loadStorage,5000);
 
 function renderRetention(job){const state=job.retention?.state;$('#retention-status').textContent=state==='CLEANED'?'Серверные записи и ZIP удалены. История сохранена.':state==='CLEANING'?'Очистка прервана. Нажмите повторно для завершения.':state==='VERIFIED'?'Копия подтверждена. Очистка требует отдельного подтверждения.':'Скачайте архив и проверьте его на компьютере.';$('#confirm-copy').disabled=!job.archive?.ready||['CLEANING','CLEANED'].includes(state);$('#cleanup').disabled=!['VERIFIED','CLEANING'].includes(state);$('#prepare').hidden=Boolean(state)||job.archive?.ready;$('#confirm-copy').onclick=async()=>{try{const f=$('#receipt-file').files[0];if(!f)throw new Error('Выберите receipt.json');if(f.size>16384)throw new Error('Слишком большой отчёт');const report=JSON.parse(await f.text());await api(`api/jobs/${job.id}/confirm-copy`,{method:'POST',body:JSON.stringify(report)});await loadJobs()}catch(e){alert(e.message)}};$('#cleanup').onclick=async()=>{const confirmation=prompt(`Будут удалены товары этой партии и серверный ZIP. Убедитесь, что архив сохранён на компьютере. Для подтверждения введите ID ${job.id}`);if(confirmation===null)return;try{await api(`api/jobs/${job.id}/cleanup`,{method:'POST',body:JSON.stringify({confirmation})});await loadJobs();await loadDetail();await loadStorage()}catch(e){alert(e.message)}}}

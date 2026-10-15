@@ -41,6 +41,7 @@ def status(root):
     sizes = {}
     for name in ('batches', 'jobs', 'exports'):
         sizes[name] = sum(p.stat().st_size for p in (root / name).glob('*') if p.is_file())
+    sizes['directory'] = sum(p.stat().st_size for p in root.glob('directory.sqlite3*') if p.is_file())
     return {'free_bytes': usage.free, 'total_bytes': usage.total,
             'reserve_bytes': reserve, 'collection_headroom_bytes': 256 * MIB,
             'can_collect': usage.free >= reserve + 256 * MIB, 'sizes': sizes}

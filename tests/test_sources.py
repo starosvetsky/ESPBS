@@ -30,7 +30,7 @@ OFFICIAL = '<script type="application/ld+json">' + json.dumps({
 class SourceTests(unittest.TestCase):
     def test_scope_and_product(self):
         for url in ['https://evil.invalid/', 'https://olnisa.ru@evil.invalid/',
-                    olnisa.CATALOG+'?page=2', 'https://olnisa.ru/manufacturers/other/']:
+                    olnisa.CATALOG+'?page=2', 'https://olnisa.ru/catalog/other/']:
             with self.assertRaises(ValueError):
                 configuration('olnisa', url)
         self.assertEqual(olnisa.listing(HTML, URL), ([URL], []))

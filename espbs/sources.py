@@ -18,7 +18,7 @@ REGISTRY = {
     'eltex': {'id': 'eltex', 'name': 'Eltex — официальный каталог MES',
               'default_url': eltex.CATALOG, 'enrichments': ['none'],
               'description': 'Коммутаторы MES с официального сайта производителя.'},
-    'olnisa': {'id': 'olnisa', 'name': 'Olnisa — оборудование Eltex',
+    'olnisa': {'id': 'olnisa', 'name': 'Olnisa — разделы производителей',
                'default_url': olnisa.CATALOG, 'enrichments': ['eltex', 'none'],
                'description': 'Раздел Eltex (первая страница) или отдельная карточка. Проверены MES2424B, MES2428, MES2428B, MES2411X. Остальные — на проверку.'},
 }

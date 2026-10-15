@@ -16,8 +16,8 @@ def safe_url(value, base=CATALOG):
     url = urljoin(base, value)
     p = urlsplit(url)
     if (p.scheme != 'https' or p.netloc != 'olnisa.ru' or p.fragment or p.query
-            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/eltex/(?:[a-z0-9_-]+/)?', p.path))):
-        raise ValueError('Поддерживается раздел https://olnisa.ru/manufacturers/eltex/ и его карточки')
+            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-z0-9_-]+/(?:[a-z0-9_-]+/)?', p.path))):
+        raise ValueError('Укажите раздел производителя Olnisa /manufacturers/бренд/ или его карточку')
     return url
 
 
@@ -26,9 +26,10 @@ def listing(html, url):
     if soup.select_one('.catalog-detail-mini-params h1'):
         return [safe_url(url)], []
     urls = []
+    section = 'https://olnisa.ru/' + '/'.join(urlsplit(url).path.strip('/').split('/')[:2]) + '/'
     for a in soup.select('a.catalog-item[href]'):
         candidate = urljoin(url, a['href'])
-        if candidate.startswith(CATALOG) and candidate != CATALOG:
+        if candidate.startswith(section) and candidate != section:
             urls.append(safe_url(candidate))
     if not urls:
         raise ValueError('Карточки Olnisa не найдены; проверьте структуру страницы')

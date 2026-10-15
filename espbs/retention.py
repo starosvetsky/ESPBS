@@ -40,6 +40,10 @@ def cleanup(job, confirmation):
         raise ValueError('Type the full job ID to confirm cleanup')
     batch = Batch(job.root, job.id)
     with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(job.path.with_suffix('.lock')):
+        with job.db() as db:
+            if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='dependents'").fetchone():
+                if db.execute('SELECT 1 FROM dependents WHERE ready=0 LIMIT 1').fetchone():
+                    raise ValueError('Дождитесь копирования исходных записей в очередь обогащения')
         saved = receipt(job)
         if not saved:
             raise ValueError('Verify and confirm the downloaded copy first')
@@ -63,6 +67,11 @@ def cleanup(job, confirmation):
             db.execute('DELETE FROM records')
         with batch.connection() as db:
             db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+            db.execute('VACUUM')
+        with job.db() as db:
+            if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='inputs'").fetchone():
+                db.execute('DELETE FROM inputs')
+        with job.db() as db:
             db.execute('VACUUM')
         archive.unlink(missing_ok=True)
         with job.db() as db:

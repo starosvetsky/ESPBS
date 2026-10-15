@@ -10,6 +10,20 @@ from uuid import UUID
 from .storage import Batch, utc_now
 from .disk import require_space, LowDiskSpace, MIB
 
+MAX_PRODUCTS = 1_000_000
+
+
+def counters(db):
+    if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='counters'").fetchone():
+        return dict(db.execute('SELECT name,value FROM counters'))
+    return None
+
+
+def increment(db, name, amount=1):
+    if counters(db) is not None:
+        db.execute('INSERT INTO counters VALUES (?,?) ON CONFLICT(name) DO UPDATE SET value=value+excluded.value',
+                   (name, amount))
+
 
 @contextmanager
 def worker_lock(path):
@@ -59,11 +73,17 @@ class Job:
             db.close()
 
     @classmethod
-    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None):
+    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None, selectors=None, auto_enrich=False):
         from .sources import configuration
-        config = configuration(source, start_url, enrichment)
-        if not 1 <= limit <= 100:
-            raise ValueError('Limit must be between 1 and 100')
+        if source == 'auto':
+            from .directory import detect
+            config = detect(root, start_url, selectors)
+        else:
+            config = configuration(source, start_url, enrichment)
+        if auto_enrich:
+            config['auto_enrich'] = True
+        if not isinstance(limit, int) or not 1 <= limit <= MAX_PRODUCTS:
+            raise ValueError('Лимит задания должен быть от 1 до 1 000 000 товаров')
         require_space(root, 256 * MIB)
         batch = Batch.create(root)
         directory = Path(root) / 'jobs'
@@ -80,6 +100,9 @@ class Job:
                                         done INTEGER DEFAULT 0, outcome TEXT, quality TEXT);
                     CREATE TABLE events (seq INTEGER PRIMARY KEY, time TEXT, kind TEXT, detail TEXT);
                     CREATE TABLE config (value TEXT NOT NULL);
+                    CREATE TABLE counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
+                    CREATE INDEX items_pending ON items(done,seq);
+                    CREATE INDEX pages_pending ON pages(done);
                 ''')
                 db.execute("INSERT INTO job VALUES ('READY',0,?,?,?,NULL)", (limit, utc_now(), utc_now()))
                 db.execute('INSERT INTO config VALUES (?)', (json.dumps(config),))
@@ -88,19 +111,96 @@ class Job:
             db.close()
         return cls(root, batch.id)
 
+    @classmethod
+    def create_enrichment(cls, parent):
+        """Snapshot a bounded finished batch so later cleanup cannot break replay."""
+        from .retention import receipt
+        batch = Batch(parent.root, parent.id)
+        with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(parent.path.with_suffix('.lock')):
+            if parent.info()['state'] != 'COMPLETED':
+                raise ValueError('Сначала завершите исходное задание')
+            retained = receipt(parent)
+            if retained and retained['state'] in ('CLEANING', 'CLEANED'):
+                raise ValueError('Исходная партия уже очищается или очищена')
+            count = batch.info()['record_count']
+            if not 1 <= count <= MAX_PRODUCTS:
+                raise ValueError('Обогащение работает с непустыми партиями до 1 000 000 товаров')
+            require_space(parent.root, 256 * MIB + batch.path.stat().st_size * 2)
+            child = cls.create(parent.root, count)
+            config = {'source': 'enrichment', 'enrichment': 'directory', 'parent_id': parent.id,
+                      'start_url': '', 'snapshot_ready': count <= 100}
+            with child.db() as db:
+                db.execute('UPDATE config SET value=?', (json.dumps(config),))
+                db.execute('DELETE FROM pages')
+                db.execute('CREATE TABLE inputs (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+                if count <= 100:
+                    for row in batch.records():
+                        db.execute('INSERT INTO inputs VALUES (?,?)', (row['record_id'], row['payload']))
+                        db.execute('INSERT INTO items(url) VALUES (?)', (row['record_id'],))
+                    increment(db, 'discovered', count)
+            if count > 100:
+                with parent.db() as db:
+                    db.execute('CREATE TABLE IF NOT EXISTS dependents (id TEXT PRIMARY KEY, ready INTEGER)')
+                    db.execute('INSERT INTO dependents VALUES (?,0)', (child.id,))
+            return child
+
+    def snapshot(self, config, callback):
+        """Copy large input queues in restartable chunks inside the worker."""
+        if config.get('snapshot_ready', True):
+            return
+        parent = Job(self.root, config['parent_id'])
+        batch = Batch(self.root, parent.id)
+        with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(parent.path.with_suffix('.lock')):
+            cursor = config.get('snapshot_cursor', '')
+            while True:
+                if self.stopped():
+                    from .eltex import Stopped
+                    raise Stopped()
+                require_space(self.root, 256 * MIB)
+                rows = batch.products(cursor, 100)
+                if not rows:
+                    break
+                cursor = rows[-1]['cursor']
+                config['snapshot_cursor'] = cursor
+                with self.db() as db:
+                    for row in rows:
+                        db.execute('INSERT OR IGNORE INTO inputs VALUES (?,?)',
+                                   (row['cursor'], json.dumps(row['product'], ensure_ascii=False)))
+                        added = db.execute('INSERT OR IGNORE INTO items(url) VALUES (?)', (row['cursor'],)).rowcount
+                        increment(db, 'discovered', added)
+                    db.execute('UPDATE config SET value=?', (json.dumps(config),))
+                self.event('snapshot', {'copied': self.info()['discovered']}, callback)
+            # Mark the dependency released first: the complete inputs snapshot is
+            # already durable. A retry can finish even if the parent is cleaned.
+            with parent.db() as db:
+                db.execute('UPDATE dependents SET ready=1 WHERE id=?', (self.id,))
+            config['snapshot_ready'] = True
+            with self.db() as db:
+                db.execute('UPDATE config SET value=?', (json.dumps(config),))
+
     def info(self):
         with self.db() as db:
             result = dict(db.execute('SELECT * FROM job').fetchone())
-            result.update(id=self.id, batch_id=self.id,
-                          discovered=db.execute('SELECT count(*) FROM items').fetchone()[0],
-                          completed=db.execute('SELECT count(*) FROM items WHERE done=1').fetchone()[0])
-            result['quality'] = {row[0]: row[1] for row in db.execute(
-                'SELECT quality,count(*) FROM items WHERE done=1 GROUP BY quality')}
+            progress = counters(db)
+            result.update(id=self.id, batch_id=self.id)
+            if progress is not None:
+                result.update(discovered=progress.get('discovered',0), completed=progress.get('completed',0),
+                              quality={k[8:]:v for k,v in progress.items() if k.startswith('quality:')},
+                              enrichment_counts={k[11:]:v for k,v in progress.items() if k.startswith('enrichment:')})
+            else:
+                result.update(discovered=db.execute('SELECT count(*) FROM items').fetchone()[0],
+                              completed=db.execute('SELECT count(*) FROM items WHERE done=1').fetchone()[0])
+                result['quality'] = {row[0]: row[1] for row in db.execute(
+                    'SELECT quality,count(*) FROM items WHERE done=1 GROUP BY quality')}
             if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='config'").fetchone():
                 result.update(json.loads(db.execute('SELECT value FROM config').fetchone()[0]))
             else:
                 from .eltex import CATALOG
                 result.update(source='eltex', start_url=CATALOG, enrichment='none')
+        if result['source'] == 'enrichment' and progress is None:
+            with Batch(self.root, self.id).connection() as db:
+                result['enrichment_counts'] = {row[0]: row[1] for row in db.execute(
+                    "SELECT json_extract(payload,'$.enrichment.status'),count(*) FROM records GROUP BY 1")}
         return result
 
     def reconcile(self):
@@ -159,7 +259,9 @@ class Job:
         from .eltex import Stopped
         from .sources import enrich, official_images
         config = self.info()
-        adapter = {'eltex': eltex, 'olnisa': olnisa}[config['source']]
+        from .universal import Adapter, Client as PublicClient
+        from .directory import Enricher
+        adapter = {'eltex': eltex, 'olnisa': olnisa}.get(config['source']) or Adapter(config.get('selectors'))
         with worker_lock(self.path.with_suffix('.lock')):
             batch = Batch(self.root, self.id)
             if self.info()['state'] == 'COMPLETED':
@@ -169,61 +271,91 @@ class Job:
             with self.db() as db:
                 db.execute("UPDATE job SET state='RUNNING',stop=0,error=NULL,updated_at=?", (utc_now(),))
             owned = client is None
-            client = client or adapter.Client(self.stopped)
+            client = client or (PublicClient(config['start_url'], self.stopped) if config['source'] == 'generic'
+                                else None if config['source'] == 'enrichment' else adapter.Client(self.stopped))
+            enricher = Enricher(self.root, self.stopped) if config['source'] == 'enrichment' else None
             official_owned = official_client is None
             if config['enrichment'] == 'eltex':
                 official_client = official_client or eltex.Client(self.stopped)
             try:
                 self.event('started', {}, callback)
                 require_space(self.root, 256 * MIB)
+                if enricher:
+                    # Store only configuration fields when checkpointing inputs.
+                    with self.db() as db:
+                        snapshot_config = json.loads(db.execute('SELECT value FROM config').fetchone()[0])
+                    self.snapshot(snapshot_config, callback)
                 target = self.info()['target']
                 while True:
-                    if self.stopped():
-                        raise Stopped()
-                    with self.db() as db:
-                        count = db.execute('SELECT count(*) FROM items').fetchone()[0]
-                        page = db.execute('SELECT url FROM pages WHERE done=0 ORDER BY rowid LIMIT 1').fetchone()
-                    if count >= target or not page:
+                    while True:
+                        if self.stopped():
+                            raise Stopped()
+                        with self.db() as db:
+                            progress = counters(db)
+                            count = progress.get('discovered',0) if progress is not None else db.execute('SELECT count(*) FROM items').fetchone()[0]
+                            page = db.execute('SELECT url FROM pages WHERE done=0 ORDER BY rowid LIMIT 1').fetchone()
+                        if count >= target or not page or count - (progress.get('completed', 0) if progress is not None else self.info()['completed']) >= 500:
+                            break
+                        with self.db() as db:
+                            visited = progress.get('pages',0) if progress is not None else db.execute('SELECT count(*) FROM pages WHERE done=1').fetchone()[0]
+                            if visited >= 100_000:
+                                raise ValueError('Проверено 100 000 страниц каталога; проверьте пагинацию')
+                        require_space(self.root, 256 * MIB)
+                        urls, pages = adapter.listing(client.get(page[0]), page[0])
+                        require_space(self.root, 256 * MIB)
+                        with self.db() as db:
+                            for url in urls:
+                                if count >= target:
+                                    break
+                                added = db.execute('INSERT OR IGNORE INTO items(url) VALUES (?)', (url,)).rowcount
+                                count += added
+                                increment(db, 'discovered', added)
+                            for url in pages:
+                                db.execute('INSERT OR IGNORE INTO pages(url) VALUES (?)', (url,))
+                            db.execute('UPDATE pages SET done=1 WHERE url=?', (page[0],))
+                            increment(db, 'pages')
+                        self.event('discovered', {'count': count}, callback)
+                    while True:
+                        if self.stopped():
+                            raise Stopped()
+                        with self.db() as db:
+                            item = db.execute('SELECT url FROM items WHERE done=0 ORDER BY seq LIMIT 1').fetchone()
+                        if not item:
+                            break
+                        require_space(self.root, 256 * MIB)
+                        if enricher:
+                            with self.db() as db:
+                                original = json.loads(db.execute('SELECT payload FROM inputs WHERE id=?', (item[0],)).fetchone()[0])
+                            record = enricher.enrich(original)
+                            record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
+                            self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
+                        else:
+                            record = adapter.product(client.get(item[0]), item[0])
+                        if official_client is not None:
+                            record = enrich(record, official_client)
+                            self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
+                        elif config['source'] == 'eltex':
+                            record['images'] = official_images(record)
+                        elif not enricher:
+                            record['quality']['issues'].append('Обогащение отключено')
+                        require_space(self.root, 256 * MIB)
+                        outcome = batch.add(record)
+                        # A crash here replays this URL; Batch.add prevents duplicate rows.
+                        with self.db() as db:
+                            db.execute('UPDATE items SET done=1,outcome=?,quality=? WHERE url=?',
+                                       (outcome, record['quality']['status'], item[0]))
+                            increment(db, 'completed')
+                            increment(db, 'quality:' + record['quality']['status'])
+                            if 'enrichment' in record:
+                                increment(db, 'enrichment:' + record['enrichment']['status'])
+                        self.event('saved', {'url': item[0], 'outcome': outcome,
+                                            'completed': self.info()['completed']}, callback)
+                    if self.info()['discovered'] >= target:
                         break
                     with self.db() as db:
-                        if db.execute('SELECT count(*) FROM pages WHERE done=1').fetchone()[0] >= 20:
-                            raise ValueError('Discovery exceeded 20 pages; inspect source before resuming')
-                    require_space(self.root, 256 * MIB)
-                    urls, pages = adapter.listing(client.get(page[0]), page[0])
-                    require_space(self.root, 256 * MIB)
-                    with self.db() as db:
-                        for url in urls:
-                            if count >= target:
-                                break
-                            count += db.execute('INSERT OR IGNORE INTO items(url) VALUES (?)', (url,)).rowcount
-                        for url in pages:
-                            db.execute('INSERT OR IGNORE INTO pages(url) VALUES (?)', (url,))
-                        db.execute('UPDATE pages SET done=1 WHERE url=?', (page[0],))
-                    self.event('discovered', {'count': count}, callback)
-                while True:
-                    if self.stopped():
-                        raise Stopped()
-                    with self.db() as db:
-                        item = db.execute('SELECT url FROM items WHERE done=0 ORDER BY seq LIMIT 1').fetchone()
-                    if not item:
+                        pending = db.execute('SELECT 1 FROM pages WHERE done=0 LIMIT 1').fetchone()
+                    if not pending:
                         break
-                    require_space(self.root, 256 * MIB)
-                    record = adapter.product(client.get(item[0]), item[0])
-                    if official_client is not None:
-                        record = enrich(record, official_client)
-                        self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
-                    elif config['source'] == 'eltex':
-                        record['images'] = official_images(record)
-                    else:
-                        record['quality']['issues'].append('Обогащение отключено')
-                    require_space(self.root, 256 * MIB)
-                    outcome = batch.add(record)
-                    # A crash here replays this URL; Batch.add prevents duplicate rows.
-                    with self.db() as db:
-                        db.execute('UPDATE items SET done=1,outcome=?,quality=? WHERE url=?',
-                                   (outcome, record['quality']['status'], item[0]))
-                    self.event('saved', {'url': item[0], 'outcome': outcome,
-                                        'completed': self.info()['completed']}, callback)
                 state, error = 'COMPLETED', None
             except LowDiskSpace as exc:
                 state, error = 'PAUSED_DISK', str(exc)
@@ -232,11 +364,27 @@ class Job:
             except Exception as exc:
                 state, error = 'FAILED', str(exc)
             finally:
-                if owned:
+                if owned and client is not None:
                     client.close()
+                if enricher:
+                    enricher.close()
                 if official_owned and official_client is not None:
                     official_client.close()
             with self.db() as db:
                 db.execute('UPDATE job SET state=?,error=?,updated_at=?', (state, error, utc_now()))
             self.event(state.lower(), {'error': error}, callback)
-            return self.info()
+        if state == 'COMPLETED' and config.get('auto_enrich'):
+            try:
+                child = self.create_enrichment(self)
+                config['child_id'] = child.id
+                with self.db() as db:
+                    db.execute('UPDATE config SET value=?', (json.dumps({k: config[k] for k in (
+                        'source','start_url','enrichment','selectors','auto_enrich','child_id') if k in config}),))
+                from .api import launch_worker
+                launch_worker(self.root, child.id)
+            except Exception as exc:
+                message = 'Сбор сохранён, но обогащение не запущено: ' + str(exc)
+                self.event('enrichment_launch_failed', {'error': message}, callback)
+                with self.db() as db:
+                    db.execute('UPDATE job SET error=?', (message,))
+        return self.info()
