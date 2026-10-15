@@ -23,7 +23,7 @@ def safe_url(value, base=CATALOG):
     url = urljoin(base, value)
     p = urlsplit(url)
     if (p.scheme != 'https' or p.netloc != 'olnisa.ru' or p.fragment or p.query
-            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-zA-Z0-9_-]+/(?:[a-zA-Z0-9_-]+/)?', p.path))):
+            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/', p.path))):
         raise ValueError('Укажите раздел производителя Olnisa /manufacturers/бренд/ или его карточку')
     return url
 
