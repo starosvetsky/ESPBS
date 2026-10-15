@@ -190,10 +190,10 @@ class Handler(BaseHTTPRequestHandler):
             parts, _, job = self.route()
             if len(parts) == 2:
                 payload = self.body()
-                job = Job.create(self.server.root, int(payload.get('limit', 3)),
+                job = Job.create(self.server.root, payload.get('limit'),
                                  payload.get('source', 'eltex'), payload.get('start_url', ''),
                                  payload.get('enrichment'), payload.get('selectors'),
-                                 payload.get('auto_enrich', False))
+                                 payload.get('auto_enrich', True), payload.get('photo_policy', 'official'))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
             if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich'):

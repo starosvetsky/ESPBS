@@ -12,11 +12,18 @@ from .storage import utc_now
 CATALOG = 'https://olnisa.ru/manufacturers/eltex/'
 
 
+def advertised_count(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    heading = soup.select_one('h1 span')
+    match = re.search(r'\(([\d\s\u00a0]+)', heading.get_text()) if heading else None
+    return int(re.sub(r'\s', '', match[1])) if match else None
+
+
 def safe_url(value, base=CATALOG):
     url = urljoin(base, value)
     p = urlsplit(url)
     if (p.scheme != 'https' or p.netloc != 'olnisa.ru' or p.fragment or p.query
-            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-z0-9_-]+/(?:[a-z0-9_-]+/)?', p.path))):
+            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-zA-Z0-9_-]+/(?:[a-zA-Z0-9_-]+/)?', p.path))):
         raise ValueError('Укажите раздел производителя Olnisa /manufacturers/бренд/ или его карточку')
     return url
 
@@ -33,8 +40,13 @@ def listing(html, url):
             urls.append(safe_url(candidate))
     if not urls:
         raise ValueError('Карточки Olnisa не найдены; проверьте структуру страницы')
-    # Query pagination is prohibited by this source's robots.txt.
-    return list(dict.fromkeys(urls)), []
+    # Follow published path pagination, not robots-disallowed query variants.
+    pages = []
+    for a in soup.select('a.page_link[href], .catalog-show-all[data-url]'):
+        candidate = urljoin(url, a.get('href') or a.get('data-url'))
+        if re.fullmatch(re.escape(section) + r'page-\d+/', candidate):
+            pages.append(safe_url(candidate))
+    return list(dict.fromkeys(urls)), list(dict.fromkeys(pages))
 
 
 def product(html, url):

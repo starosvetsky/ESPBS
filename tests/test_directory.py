@@ -76,7 +76,8 @@ class DirectoryTests(unittest.TestCase):
     def test_directory_validation_and_missing_mapping(self):
         self.directory.save_manufacturer({'brand':'Alpha','home_url':'https://alpha.example/'})
         enricher=Enricher(self.root)
-        self.assertEqual(enricher.enrich(record())['enrichment']['status'],'NEEDS_MAPPING')
+        with patch.object(enricher, 'discover', return_value=None):
+            self.assertEqual(enricher.enrich(record())['enrichment']['status'],'NOT_FOUND')
         self.assertEqual(enricher.enrich(record('Unknown'))['enrichment']['status'],'NO_MANUFACTURER')
         with self.assertRaises(ValueError):
             self.directory.save_mapping({'brand':'Alpha','mpn':'X-1','url':'https://other.example/x'})

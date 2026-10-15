@@ -85,10 +85,12 @@ class JobTests(unittest.TestCase):
                 batch.seal()
 
     def test_limits(self):
-        for limit in (0, -1, 1_000_001):
+        for limit in (0, -1, True, 1.5, 9223372036854775808):
             with self.assertRaises(ValueError):
                 Job.create(self.root, limit)
         self.assertEqual(Job.create(self.root, 1_000_000).info()['target'], 1_000_000)
+        self.assertIsNone(Job.create(self.root, None).info()['target'])
+        self.assertEqual(Job.create(self.root, 1_000_001).info()['target'], 1_000_001)
 
     def test_http_error_preserves_checkpoint(self):
         job = Job.create(self.root, 1)

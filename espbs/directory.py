@@ -2,7 +2,9 @@
 import copy
 import hashlib
 import json
+import re
 import sqlite3
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -167,6 +169,43 @@ class Enricher:
         self.directory = Directory(root)
         self.stopped = stopped
         self.clients = {}
+        self.sitemaps = {}
+
+    def discover(self, manufacturer, mpn):
+        """Find candidates in a verified manufacturer's published sitemap.
+
+        A URL match is only discovery, never permission to merge identities.
+        """
+        home = manufacturer['home_url']
+        origin = urlsplit(home).netloc
+        if origin not in self.sitemaps:
+            client = self.client(home)
+            robots = client.get(urljoin(home, '/robots.txt'))
+            pending = [line.split(':', 1)[1].strip() for line in robots.splitlines()
+                       if line.lower().startswith('sitemap:')]
+            seen, links = set(), set()
+            while pending:
+                if self.stopped():
+                    raise eltex.Stopped()
+                sitemap = public_url(pending.pop(0))
+                if sitemap in seen or urlsplit(sitemap).netloc != origin:
+                    continue
+                if len(seen) >= 100:
+                    raise ValueError('Карта официального сайта слишком велика для поиска за один проход')
+                seen.add(sitemap)
+                tree = ET.fromstring(client.get(sitemap))
+                values = [node.text.strip() for node in tree.findall('./{*}*/{*}loc') if node.text]
+                if tree.tag.endswith('sitemapindex'):
+                    pending.extend(values)
+                else:
+                    links.update(u for u in values if urlsplit(u).netloc == origin)
+                if len(links) > 100000:
+                    raise ValueError('Карта официального сайта содержит более 100 000 адресов')
+            self.sitemaps[origin] = links
+        pattern = re.compile(r'(?<![a-z0-9])' + re.escape(mpn.casefold()) + r'(?![a-z0-9])')
+        candidates = sorted(u for u in self.sitemaps[origin] if pattern.search(urlsplit(u).path.casefold()))
+        # Ambiguous variants are never selected arbitrarily.
+        return candidates[0] if len(candidates) == 1 else None
 
     def client(self, url):
         origin = urlsplit(url).netloc
@@ -196,14 +235,21 @@ class Enricher:
             return fail('MISSING_IDENTITY', 'Для сопоставления нужны бренд и точный MPN')
         manufacturer, url = self.directory.resolve(brand, mpn)
         if not manufacturer:
-            return fail('NO_MANUFACTURER', 'Добавьте официальный сайт бренда ' + brand)
+            return fail('NO_MANUFACTURER', 'Официальный домен бренда пока не подтверждён: ' + brand)
         if not url and key(brand) == 'eltex' and mpn.upper() in ALIASES and urlsplit(manufacturer['home_url']).netloc == 'eltex.ru':
             url = ALIASES[mpn.upper()]
             method = 'reviewed_alias'
         else:
             method = 'exact_brand_mpn'
         if not url:
-            return fail('NEEDS_MAPPING', 'Добавьте URL официальной карточки для ' + brand + ' ' + mpn)
+            try:
+                url = self.discover(manufacturer, mpn)
+            except eltex.Stopped:
+                raise
+            except Exception as error:
+                return fail('ERROR', 'Поиск на официальном сайте: ' + str(error))
+            if not url:
+                return fail('NOT_FOUND', 'Однозначная официальная карточка не найдена для ' + brand + ' ' + mpn)
         # One cache entry per identity; configuration changes invalidate it.
         identity = canonical_json([key(brand), key(mpn)])
         revision = hashlib.sha256(canonical_json([manufacturer, url, method]).encode()).hexdigest()
@@ -220,6 +266,8 @@ class Enricher:
             else:
                 html = self.client(url).get(url)
                 official = Adapter(manufacturer.get('selectors')).product(html, url)
+                if not official.get('manufacturer') or not official.get('mpn'):
+                    return fail('UNVERIFIED', 'Официальная страница найдена, но не содержит явного бренда и MPN: ' + url)
                 if key(official.get('manufacturer','')) != key(brand) or key(official.get('mpn','')) != key(mpn):
                     return fail('MISMATCH', 'Бренд или MPN официальной карточки не совпадает')
                 raw = objects(BeautifulSoup(html, 'html.parser'))

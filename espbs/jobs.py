@@ -10,9 +10,6 @@ from uuid import UUID
 from .storage import Batch, utc_now
 from .disk import require_space, LowDiskSpace, MIB
 
-MAX_PRODUCTS = 1_000_000
-
-
 def counters(db):
     if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='counters'").fetchone():
         return dict(db.execute('SELECT name,value FROM counters'))
@@ -73,7 +70,7 @@ class Job:
             db.close()
 
     @classmethod
-    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None, selectors=None, auto_enrich=False):
+    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None, selectors=None, auto_enrich=False, photo_policy='official'):
         from .sources import configuration
         if source == 'auto':
             from .directory import detect
@@ -82,8 +79,11 @@ class Job:
             config = configuration(source, start_url, enrichment)
         if auto_enrich:
             config['auto_enrich'] = True
-        if not isinstance(limit, int) or not 1 <= limit <= MAX_PRODUCTS:
-            raise ValueError('Лимит задания должен быть от 1 до 1 000 000 товаров')
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= 9223372036854775807):
+            raise ValueError('Лимит должен быть положительным целым числом или null (весь каталог)')
+        if photo_policy not in ('official', 'none'):
+            raise ValueError('Неизвестный режим фотографий')
+        config['photo_policy'] = photo_policy
         require_space(root, 256 * MIB)
         batch = Batch.create(root)
         directory = Path(root) / 'jobs'
@@ -123,12 +123,13 @@ class Job:
             if retained and retained['state'] in ('CLEANING', 'CLEANED'):
                 raise ValueError('Исходная партия уже очищается или очищена')
             count = batch.info()['record_count']
-            if not 1 <= count <= MAX_PRODUCTS:
-                raise ValueError('Обогащение работает с непустыми партиями до 1 000 000 товаров')
+            if count < 1:
+                raise ValueError('Для обогащения нужна непустая партия')
             require_space(parent.root, 256 * MIB + batch.path.stat().st_size * 2)
             child = cls.create(parent.root, count)
             config = {'source': 'enrichment', 'enrichment': 'directory', 'parent_id': parent.id,
-                      'start_url': '', 'snapshot_ready': count <= 100}
+                      'start_url': '', 'snapshot_ready': count <= 100,
+                      'photo_policy': parent.info().get('photo_policy', 'official')}
             with child.db() as db:
                 db.execute('UPDATE config SET value=?', (json.dumps(config),))
                 db.execute('DELETE FROM pages')
@@ -294,18 +295,25 @@ class Job:
                             progress = counters(db)
                             count = progress.get('discovered',0) if progress is not None else db.execute('SELECT count(*) FROM items').fetchone()[0]
                             page = db.execute('SELECT url FROM pages WHERE done=0 ORDER BY rowid LIMIT 1').fetchone()
-                        if count >= target or not page or count - (progress.get('completed', 0) if progress is not None else self.info()['completed']) >= 500:
+                        if (target is not None and count >= target) or not page or count - (progress.get('completed', 0) if progress is not None else self.info()['completed']) >= 500:
                             break
                         with self.db() as db:
                             visited = progress.get('pages',0) if progress is not None else db.execute('SELECT count(*) FROM pages WHERE done=1').fetchone()[0]
                             if visited >= 100_000:
                                 raise ValueError('Проверено 100 000 страниц каталога; проверьте пагинацию')
                         require_space(self.root, 256 * MIB)
-                        urls, pages = adapter.listing(client.get(page[0]), page[0])
+                        html = client.get(page[0])
+                        urls, pages = adapter.listing(html, page[0])
+                        if config['source'] == 'olnisa' and page[0] == config['start_url']:
+                            config['expected_total'] = olnisa.advertised_count(html)
+                            with self.db() as db:
+                                saved = json.loads(db.execute('SELECT value FROM config').fetchone()[0])
+                                saved['expected_total'] = config['expected_total']
+                                db.execute('UPDATE config SET value=?', (json.dumps(saved),))
                         require_space(self.root, 256 * MIB)
                         with self.db() as db:
                             for url in urls:
-                                if count >= target:
+                                if target is not None and count >= target:
                                     break
                                 added = db.execute('INSERT OR IGNORE INTO items(url) VALUES (?)', (url,)).rowcount
                                 count += added
@@ -337,7 +345,19 @@ class Job:
                         elif config['source'] == 'eltex':
                             record['images'] = official_images(record)
                         elif not enricher:
-                            record['quality']['issues'].append('Обогащение отключено')
+                            record['quality']['issues'].append('Официальные данные проверяются отдельным заданием' if config.get('auto_enrich') else 'Обогащение отключено')
+                        if config.get('photo_policy') == 'none':
+                            def remove_images(value):
+                                if isinstance(value, dict):
+                                    for field in ('image', 'images'):
+                                        value.pop(field, None)
+                                    for nested in value.values():
+                                        remove_images(nested)
+                                elif isinstance(value, list):
+                                    for nested in value:
+                                        remove_images(nested)
+                            remove_images(record)
+                            record['images'] = []
                         require_space(self.root, 256 * MIB)
                         outcome = batch.add(record)
                         # A crash here replays this URL; Batch.add prevents duplicate rows.
@@ -350,13 +370,15 @@ class Job:
                                 increment(db, 'enrichment:' + record['enrichment']['status'])
                         self.event('saved', {'url': item[0], 'outcome': outcome,
                                             'completed': self.info()['completed']}, callback)
-                    if self.info()['discovered'] >= target:
+                    if target is not None and self.info()['discovered'] >= target:
                         break
                     with self.db() as db:
                         pending = db.execute('SELECT 1 FROM pages WHERE done=0 LIMIT 1').fetchone()
                     if not pending:
                         break
                 state, error = 'COMPLETED', None
+                if target is None and config.get('expected_total') and self.info()['completed'] < config['expected_total']:
+                    error = f"Неполный сбор: сохранено {self.info()['completed']} из заявленных сайтом {config['expected_total']}"
             except LowDiskSpace as exc:
                 state, error = 'PAUSED_DISK', str(exc)
             except (Stopped, KeyboardInterrupt):
@@ -379,7 +401,7 @@ class Job:
                 config['child_id'] = child.id
                 with self.db() as db:
                     db.execute('UPDATE config SET value=?', (json.dumps({k: config[k] for k in (
-                        'source','start_url','enrichment','selectors','auto_enrich','child_id') if k in config}),))
+                        'source','start_url','enrichment','selectors','auto_enrich','child_id','photo_policy','expected_total') if k in config}),))
                 from .api import launch_worker
                 launch_worker(self.root, child.id)
             except Exception as exc:

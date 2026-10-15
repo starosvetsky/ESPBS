@@ -6,36 +6,16 @@
   <section class="intro"><div><p class="eyebrow">МАГАЗИН → ПРОИЗВОДИТЕЛЬ → РЕЗУЛЬТАТ</p><h1>Сбор данных<br><em>под контролем.</em></h1><p>Выберите источник. Получите предложения магазина, официальные характеристики и фотографии в одной карточке.</p></div>
   <form id="new-job">
 <label>Ссылка магазина, категории или товара<input id="start-url" type="url" placeholder="https://…" required></label>
-<input id="source" type="hidden" value="auto"><input id="enrichment" type="hidden" value="none">
-<label>Лимит товаров (до 1 000 000)<input id="limit" type="number" min="1" max="1000000" value="1000"></label>
-<label class="check"><input id="auto-enrich" type="checkbox" checked>После сбора дополнить данными производителей</label>
-<div class="actions"><button id="probe" type="button">Пробный разбор</button><button id="start" disabled>Запустить партию</button></div>
-<small id="source-help">Вставьте ссылку и проверьте образец перед запуском.</small>
-<details><summary>Правила для нового сайта</summary><p>Обычно достаточно разметки Product JSON-LD. Если её нет, задайте CSS-селекторы в JSON. Сохранённые правила применяются ко всему домену.</p>
-<textarea id="selectors" aria-label="Правила полей сайта" rows="5" placeholder='{"name":"h1","manufacturer":".brand","mpn":".article","product_links":"a.product","next_links":"a.next"}'></textarea>
-<button id="save-profile" type="button">Сохранить правила сайта</button></details>
+<label>Фотографии<select id="photo-policy"><option value="official">Только с официального сайта производителя</option><option value="none">Без фотографий</option></select></label>
+<button id="start" disabled>Собрать весь каталог</button>
+<small id="source-help">Соберём доступные товары без лимита. Для известных официальных сайтов проверим дополнительные данные. Фото магазина не берём.</small>
 </form></section>
   <section id="probe-result" aria-live="polite"></section>
-<details class="directory"><summary>Производители и официальные источники</summary>
-<p>Добавьте бренд и его официальный сайт. Для поиска карточек задайте шаблон адреса с {mpn} либо сохраните отдельные ссылки ниже. Бренд и MPN проверяются на каждой карточке.</p>
-<div class="columns">
-<form id="manufacturer-form"><h3>Производитель</h3>
-<label>Бренд<input id="brand" required placeholder="Например, Siemens"></label>
-<label>Официальный сайт<input id="home-url" type="url" required placeholder="https://…"></label>
-<label>Шаблон URL карточки (необязательно)<input id="url-template" placeholder="https://…/product/{mpn}/"></label>
-<details><summary>Правила официальной карточки</summary><textarea id="official-selectors" aria-label="Правила производителя" rows="4" placeholder='{"name":"h1","manufacturer":".brand","mpn":".mpn"}'></textarea></details>
-<button>Сохранить производителя</button></form>
-<form id="mapping-form"><h3>Официальная карточка по артикулу</h3>
-<label>Бренд<input id="mapping-brand" required list="brand-list"></label>
-<label>Точный MPN / артикул<input id="mapping-mpn" required></label>
-<label>URL официальной карточки<input id="mapping-url" type="url" required></label>
-<button>Сохранить ссылку</button><small>Ссылка — кандидат. При обогащении проверяется совпадение бренда и MPN.</small></form>
-</div><datalist id="brand-list"></datalist><p id="directory-status" role="status"></p><div id="manufacturers"></div><details><summary>Сохранённые карточки (до 100)</summary><div id="mappings"></div></details></details>
 <p id="storage" role="status">Проверка свободного места…</p><section class="layout">
     <aside><div class="section-title"><span>ЗАДАНИЯ</span><button id="refresh" class="ghost">Обновить</button></div><div id="jobs" class="jobs"><p class="empty">Загрузка…</p></div></aside>
     <article id="detail"><div class="empty large">Выберите задание</div></article>
   </section>
 </main><template id="detail-template"><div class="detail-head"><div><p class="eyebrow">АКТИВНОЕ ЗАДАНИЕ</p><h2 id="job-title"></h2></div><div class="actions"><button id="stop">Остановить</button><button id="resume">Продолжить</button></div></div>
-<div class="metrics"><div><span>Состояние</span><strong id="state"></strong></div><div><span>Найдено</span><strong id="discovered"></strong></div><div><span>Сохранено</span><strong id="completed"></strong></div><div><span>Лимит</span><strong id="target"></strong></div></div>
+<div class="metrics"><div><span>Состояние</span><strong id="state"></strong></div><div><span>Найдено</span><strong id="discovered"></strong></div><div><span>Сохранено</span><strong id="completed"></strong></div><div><span>Объём сбора</span><strong id="target"></strong></div></div>
 <p id="error" class="error"></p><div class="archive"><div><span>Результат задания</span><strong id="archive-status">Архив ещё не подготовлен</strong><small id="archive-meta">Исходные записи останутся на сервере после скачивания.</small></div><button id="prepare">Подготовить ZIP/XML</button><a id="download" class="download" hidden>Скачать архив</a></div><section class="archive"><div><strong>Сохранённая копия и очистка</strong><p id="retention-status"></p><small>На компьютере выполните: python -m espbs verify путь-к-архиву.zip --receipt receipt.json. Затем выберите receipt.json. Подтверждение копии не удаляет данные.</small><input id="receipt-file" type="file" accept=".json"><button id="confirm-copy">Подтвердить копию</button><button id="cleanup">Очистить партию на сервере</button></div></section><div class="columns"><section><h3>Товары партии</h3><div class="actions"><button id="prev-products" class="ghost">Назад</button><span id="product-page"></span><button id="next-products" class="ghost">Далее</button></div><div id="products"></div></section><section><h3>Журнал</h3><div id="events" class="events"></div></section></div></template>
 <script src="app.js"></script><script src="catalog.js"></script><script src="workbench.js"></script></body></html>
