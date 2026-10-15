@@ -59,8 +59,9 @@ class Job:
             db.close()
 
     @classmethod
-    def create(cls, root, limit=3):
-        from .eltex import CATALOG
+    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None):
+        from .sources import configuration
+        config = configuration(source, start_url, enrichment)
         if not 1 <= limit <= 100:
             raise ValueError('Limit must be between 1 and 100')
         require_space(root, 256 * MIB)
@@ -78,9 +79,11 @@ class Job:
                     CREATE TABLE items (seq INTEGER PRIMARY KEY, url TEXT UNIQUE,
                                         done INTEGER DEFAULT 0, outcome TEXT, quality TEXT);
                     CREATE TABLE events (seq INTEGER PRIMARY KEY, time TEXT, kind TEXT, detail TEXT);
+                    CREATE TABLE config (value TEXT NOT NULL);
                 ''')
                 db.execute("INSERT INTO job VALUES ('READY',0,?,?,?,NULL)", (limit, utc_now(), utc_now()))
-                db.execute('INSERT INTO pages(url) VALUES (?)', (CATALOG,))
+                db.execute('INSERT INTO config VALUES (?)', (json.dumps(config),))
+                db.execute('INSERT INTO pages(url) VALUES (?)', (config['start_url'],))
         finally:
             db.close()
         return cls(root, batch.id)
@@ -93,6 +96,11 @@ class Job:
                           completed=db.execute('SELECT count(*) FROM items WHERE done=1').fetchone()[0])
             result['quality'] = {row[0]: row[1] for row in db.execute(
                 'SELECT quality,count(*) FROM items WHERE done=1 GROUP BY quality')}
+            if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='config'").fetchone():
+                result.update(json.loads(db.execute('SELECT value FROM config').fetchone()[0]))
+            else:
+                from .eltex import CATALOG
+                result.update(source='eltex', start_url=CATALOG, enrichment='none')
         return result
 
     def reconcile(self):
@@ -146,8 +154,12 @@ class Job:
                 result.append(event)
             return result
 
-    def run(self, client=None, callback=None):
-        from .eltex import Client, Stopped, listing, product
+    def run(self, client=None, callback=None, official_client=None):
+        from . import eltex, olnisa
+        from .eltex import Stopped
+        from .sources import enrich, official_images
+        config = self.info()
+        adapter = {'eltex': eltex, 'olnisa': olnisa}[config['source']]
         with worker_lock(self.path.with_suffix('.lock')):
             batch = Batch(self.root, self.id)
             if self.info()['state'] == 'COMPLETED':
@@ -157,7 +169,10 @@ class Job:
             with self.db() as db:
                 db.execute("UPDATE job SET state='RUNNING',stop=0,error=NULL,updated_at=?", (utc_now(),))
             owned = client is None
-            client = client or Client(self.stopped)
+            client = client or adapter.Client(self.stopped)
+            official_owned = official_client is None
+            if config['enrichment'] == 'eltex':
+                official_client = official_client or eltex.Client(self.stopped)
             try:
                 self.event('started', {}, callback)
                 require_space(self.root, 256 * MIB)
@@ -174,7 +189,7 @@ class Job:
                         if db.execute('SELECT count(*) FROM pages WHERE done=1').fetchone()[0] >= 20:
                             raise ValueError('Discovery exceeded 20 pages; inspect source before resuming')
                     require_space(self.root, 256 * MIB)
-                    urls, pages = listing(client.get(page[0]), page[0])
+                    urls, pages = adapter.listing(client.get(page[0]), page[0])
                     require_space(self.root, 256 * MIB)
                     with self.db() as db:
                         for url in urls:
@@ -193,7 +208,14 @@ class Job:
                     if not item:
                         break
                     require_space(self.root, 256 * MIB)
-                    record = product(client.get(item[0]), item[0])
+                    record = adapter.product(client.get(item[0]), item[0])
+                    if official_client is not None:
+                        record = enrich(record, official_client)
+                        self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
+                    elif config['source'] == 'eltex':
+                        record['images'] = official_images(record)
+                    else:
+                        record['quality']['issues'].append('Обогащение отключено')
                     require_space(self.root, 256 * MIB)
                     outcome = batch.add(record)
                     # A crash here replays this URL; Batch.add prevents duplicate rows.
@@ -212,6 +234,8 @@ class Job:
             finally:
                 if owned:
                     client.close()
+                if official_owned and official_client is not None:
+                    official_client.close()
             with self.db() as db:
                 db.execute('UPDATE job SET state=?,error=?,updated_at=?', (state, error, utc_now()))
             self.event(state.lower(), {'error': error}, callback)

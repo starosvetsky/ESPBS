@@ -111,6 +111,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            if self.path == '/api/sources':
+                from .sources import REGISTRY
+                return self.send_json(200, {'sources': list(REGISTRY.values())})
             if self.path == '/api/storage':
                 return self.send_json(200, disk_status(self.server.root))
             if self.path in ('/', '/index.html'):
@@ -119,6 +122,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_asset('app.css', 'text/css; charset=utf-8')
             if self.path == '/app.js':
                 return self.send_asset('app.js', 'text/javascript; charset=utf-8')
+            if self.path == '/catalog.js':
+                return self.send_asset('catalog.js', 'text/javascript; charset=utf-8')
             if self.path == '/favicon.svg':
                 return self.send_asset('favicon.svg', 'image/svg+xml')
             parts, query, job = self.route()
@@ -160,9 +165,9 @@ class Handler(BaseHTTPRequestHandler):
             parts, _, job = self.route()
             if len(parts) == 2:
                 payload = self.body()
-                if payload.get('source', 'eltex') != 'eltex':
-                    raise ValueError('Only the eltex source is supported')
-                job = Job.create(self.server.root, int(payload.get('limit', 3)))
+                job = Job.create(self.server.root, int(payload.get('limit', 3)),
+                                 payload.get('source', 'eltex'), payload.get('start_url', ''),
+                                 payload.get('enrichment'))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
             if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup'):

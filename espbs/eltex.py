@@ -87,6 +87,9 @@ class Stopped(Exception):
 
 
 class Client:
+    validate_url = staticmethod(safe_url)
+    robots_url = 'https://eltex.ru/robots.txt'
+
     def __init__(self, stopped=lambda: False):
         self.stopped = stopped
         self.session = requests.Session()
@@ -98,9 +101,9 @@ class Client:
         self.session.close()
 
     def get(self, url):
-        url = safe_url(url)
+        url = self.validate_url(url)
         if self.rules is None and not url.endswith('/robots.txt'):
-            text = self.get('https://eltex.ru/robots.txt')
+            text = self.get(self.robots_url)
             # urllib handles ordinary rules. Supplement wildcard rules, which
             # urllib does not implement, conservatively for this bounded source.
             self.rules = RobotFileParser()

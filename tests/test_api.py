@@ -74,6 +74,23 @@ class APITests(unittest.TestCase):
             f"/api/jobs/{job.id}/products?after={products['next_cursor']}&limit=2")
         self.assertEqual(len(remaining['products']), 1)
 
+    @patch('espbs.api.launch_worker')
+    def test_source_registry_and_olnisa_configuration(self, launch):
+        _, registry = self.request('/api/sources')
+        self.assertEqual({x['id'] for x in registry['sources']}, {'eltex', 'olnisa'})
+        status, created = self.request('/api/jobs', 'POST', {
+            'source': 'olnisa', 'limit': 1,
+            'start_url': 'https://olnisa.ru/manufacturers/eltex/mes2428/',
+            'enrichment': 'eltex'})
+        self.assertEqual(status, 202)
+        self.assertEqual(created['source'], 'olnisa')
+        self.assertEqual(created['enrichment'], 'eltex')
+        _, saved = self.request('/api/jobs/' + created['id'])
+        self.assertEqual(saved['start_url'], created['start_url'])
+        with self.assertRaises(HTTPError):
+            self.request('/api/jobs', 'POST', {'source': 'olnisa', 'start_url': 'https://example.invalid/'})
+        self.assertEqual(launch.call_count, 1)
+
     def test_orphaned_running_state_is_failed(self):
         job = Job.create(self.temp.name, 1)
         with job.db() as db:

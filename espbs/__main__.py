@@ -28,8 +28,10 @@ def main():
     verify.add_argument("file", type=Path)
     verify.add_argument('--receipt', type=Path, help='Save a verification report for the server')
     collect = commands.add_parser('collect', help='Collect a bounded Eltex batch')
-    collect.add_argument('source', choices=['eltex'])
+    collect.add_argument('source', choices=['eltex', 'olnisa'])
     collect.add_argument('--limit', type=int, default=3)
+    collect.add_argument('--start-url', default='')
+    collect.add_argument('--enrichment', choices=['none', 'eltex'])
     commands.add_parser('runs')
     serve = commands.add_parser('serve', help='Run the local management API and dashboard')
     serve.add_argument('--host', default='127.0.0.1')
@@ -51,7 +53,7 @@ def main():
                 result = [Job(args.data_dir, p.stem).info() for p in
                           sorted((Path(args.data_dir) / 'jobs').glob('*.sqlite3'))]
             else:
-                job = Job.create(args.data_dir, args.limit) if args.command == 'collect' else Job(args.data_dir, args.job_id)
+                job = Job.create(args.data_dir, args.limit, args.source, args.start_url, args.enrichment) if args.command == 'collect' else Job(args.data_dir, args.job_id)
                 if args.command in ('collect', 'resume', 'worker'):
                     previous = signal.signal(signal.SIGTERM, lambda *_: job.stop())
                     try:
