@@ -26,6 +26,7 @@ def main():
     export.add_argument("--output", default="exports")
     verify = commands.add_parser("verify", help="Verify a downloaded archive without a database")
     verify.add_argument("file", type=Path)
+    verify.add_argument('--receipt', type=Path, help='Save a verification report for the server')
     collect = commands.add_parser('collect', help='Collect a bounded Eltex batch')
     collect.add_argument('source', choices=['eltex'])
     collect.add_argument('--limit', type=int, default=3)
@@ -70,6 +71,9 @@ def main():
                       for path in sorted((Path(args.data_dir) / "batches").glob("*.sqlite3"))]
         elif args.command == "verify":
             result = verify_archive(args.file)
+            if args.receipt:
+                with args.receipt.open('x', encoding='utf-8') as stream:
+                    json.dump(result, stream, ensure_ascii=False, indent=2)
         else:
             batch = Batch(args.data_dir, args.batch_id)
             if args.command == "status":

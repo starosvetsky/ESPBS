@@ -10,9 +10,10 @@ from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from .archive import export_batch, file_hash, verify_archive
-from .jobs import Job
+from .jobs import Job, worker_lock
 from .storage import Batch
 from .disk import status as disk_status, require_space, MIB
+from .retention import receipt, confirm_copy, cleanup
 
 
 def archive_info(root, job_id):
@@ -26,7 +27,7 @@ def archive_info(root, job_id):
 
 
 def job_info(root, job):
-    return {**job.reconcile(), 'archive': archive_info(root, job.id)}
+    return {**job.reconcile(), 'archive': archive_info(root, job.id), 'retention': receipt(job)}
 
 
 def jobs(root):
@@ -139,8 +140,10 @@ class Handler(BaseHTTPRequestHandler):
                 path = self.server.root / 'exports' / (job.id + '.zip')
                 if not path.is_file():
                     raise FileNotFoundError('Archive is not prepared')
-                verify_archive(path)
-                return self.send_file(path)
+                batch = Batch(self.server.root, job.id)
+                with worker_lock(batch.path.with_suffix('.maintenance.lock')):
+                    verify_archive(path)
+                    return self.send_file(path)
             else:
                 raise FileNotFoundError('Route not found')
             self.send_json(200, value)
@@ -152,6 +155,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
+                raise ValueError('Content-Type must be application/json')
             parts, _, job = self.route()
             if len(parts) == 2:
                 payload = self.body()
@@ -160,9 +165,15 @@ class Handler(BaseHTTPRequestHandler):
                 job = Job.create(self.server.root, int(payload.get('limit', 3)))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
-            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive'):
+            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup'):
                 raise FileNotFoundError('Route not found')
+            if parts[3] == 'confirm-copy':
+                return self.send_json(200, confirm_copy(job, self.body()))
+            if parts[3] == 'cleanup':
+                return self.send_json(200, cleanup(job, self.body().get('confirmation')))
             if parts[3] == 'archive':
+                if receipt(job):
+                    raise ValueError('Copy already confirmed; archive preparation disabled')
                 if job.reconcile()['state'] != 'COMPLETED':
                     raise ValueError('Only a completed job can be archived')
                 export_batch(Batch(self.server.root, job.id), self.server.root / 'exports')
@@ -194,3 +205,4 @@ def serve(root='data', host='127.0.0.1', port=8765):
         pass
     finally:
         server.server_close()
+

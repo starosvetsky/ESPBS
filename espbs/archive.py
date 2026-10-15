@@ -122,6 +122,19 @@ def verify_archive(path, max_xml_bytes=MAX_XML_BYTES):
 
 
 def export_batch(batch, destination):
+    from .jobs import worker_lock
+    with worker_lock(batch.path.with_suffix('.maintenance.lock')):
+        return _export_batch(batch, destination)
+
+
+def _export_batch(batch, destination):
+    from .jobs import Job
+    from .retention import receipt
+    root = batch.path.parent.parent
+    if (root / 'jobs' / (batch.id + '.sqlite3')).exists():
+        saved = receipt(Job(root, batch.id))
+        if saved and saved['state'] in ('CLEANING', 'CLEANED'):
+            raise ValueError('Batch cleanup has started; archive cannot be recreated')
     from .disk import require_space, MIB
     # Check before sealing: refusal must leave an open batch writable.
     target = Path(destination) / (batch.id + '.zip')
