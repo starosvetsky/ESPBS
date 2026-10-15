@@ -12,6 +12,7 @@ from uuid import UUID
 from .archive import export_batch, file_hash, verify_archive
 from .jobs import Job
 from .storage import Batch
+from .disk import status as disk_status, require_space, MIB
 
 
 def archive_info(root, job_id):
@@ -109,6 +110,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            if self.path == '/api/storage':
+                return self.send_json(200, disk_status(self.server.root))
             if self.path in ('/', '/index.html'):
                 return self.send_asset('index.html', 'text/html; charset=utf-8')
             if self.path == '/app.css':
@@ -168,8 +171,9 @@ class Handler(BaseHTTPRequestHandler):
                 job.stop()
             else:
                 state = job.reconcile()['state']
-                if state not in ('STOPPED', 'FAILED', 'READY'):
+                if state not in ('STOPPED', 'FAILED', 'READY', 'PAUSED_DISK'):
                     raise ValueError('Job cannot be resumed from state ' + state)
+                require_space(self.server.root, 256 * MIB)
                 launch_worker(self.server.root, job.id)
             self.send_json(202, job_info(self.server.root, job))
         except (ValueError, FileNotFoundError, json.JSONDecodeError) as error:

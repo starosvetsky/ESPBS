@@ -109,7 +109,7 @@ class BatchTests(unittest.TestCase):
 
     def test_disk_failure_retains_records_and_allows_retry(self):
         self.batch.add(product())
-        with patch("espbs.archive.xml_chunks", side_effect=OSError("disk full")):
+        with patch("espbs.archive.zipfile.ZipFile", side_effect=OSError("disk full")):
             with self.assertRaises(OSError):
                 export_batch(self.batch, self.output)
         self.assertEqual(self.batch.info()["state"], "SEALED")

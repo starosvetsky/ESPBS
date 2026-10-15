@@ -122,6 +122,12 @@ def verify_archive(path, max_xml_bytes=MAX_XML_BYTES):
 
 
 def export_batch(batch, destination):
+    from .disk import require_space, MIB
+    # Check before sealing: refusal must leave an open batch writable.
+    target = Path(destination) / (batch.id + '.zip')
+    if not target.exists():
+        xml_size = sum(len(chunk) for chunk in xml_chunks(batch))
+        require_space(destination, xml_size + xml_size // 100 + 16 * MIB)
     batch.seal()
     info = batch.info()
     destination = Path(destination)
@@ -149,6 +155,7 @@ def export_batch(batch, destination):
             with archive.open("products.xml", "w", force_zip64=True) as stream:
                 def write(data):
                     nonlocal total
+                    require_space(destination, len(data) + MIB)
                     total += len(data)
                     if total > MAX_XML_BYTES:
                         raise ValueError("Batch XML exceeds size limit; use smaller batches")

@@ -39,6 +39,12 @@ class APITests(unittest.TestCase):
             content = response.read()
             return response.status, json.loads(content) if content else None
 
+    def test_storage_status(self):
+        status, value = self.request('/api/storage')
+        self.assertEqual(status, 200)
+        self.assertGreater(value['reserve_bytes'], 0)
+        self.assertIn('batches', value['sizes'])
+
     @patch('espbs.api.launch_worker')
     def test_create_list_and_actions(self, launch):
         status, created = self.request('/api/jobs', 'POST', {'source': 'eltex', 'limit': 2})

@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import UUID
 
 from .storage import Batch, utc_now
+from .disk import require_space, LowDiskSpace, MIB
 
 
 @contextmanager
@@ -62,6 +63,7 @@ class Job:
         from .eltex import CATALOG
         if not 1 <= limit <= 100:
             raise ValueError('Limit must be between 1 and 100')
+        require_space(root, 256 * MIB)
         batch = Batch.create(root)
         directory = Path(root) / 'jobs'
         directory.mkdir(parents=True, exist_ok=True)
@@ -158,6 +160,7 @@ class Job:
             client = client or Client(self.stopped)
             try:
                 self.event('started', {}, callback)
+                require_space(self.root, 256 * MIB)
                 target = self.info()['target']
                 while True:
                     if self.stopped():
@@ -170,7 +173,9 @@ class Job:
                     with self.db() as db:
                         if db.execute('SELECT count(*) FROM pages WHERE done=1').fetchone()[0] >= 20:
                             raise ValueError('Discovery exceeded 20 pages; inspect source before resuming')
+                    require_space(self.root, 256 * MIB)
                     urls, pages = listing(client.get(page[0]), page[0])
+                    require_space(self.root, 256 * MIB)
                     with self.db() as db:
                         for url in urls:
                             if count >= target:
@@ -187,7 +192,9 @@ class Job:
                         item = db.execute('SELECT url FROM items WHERE done=0 ORDER BY seq LIMIT 1').fetchone()
                     if not item:
                         break
+                    require_space(self.root, 256 * MIB)
                     record = product(client.get(item[0]), item[0])
+                    require_space(self.root, 256 * MIB)
                     outcome = batch.add(record)
                     # A crash here replays this URL; Batch.add prevents duplicate rows.
                     with self.db() as db:
@@ -196,6 +203,8 @@ class Job:
                     self.event('saved', {'url': item[0], 'outcome': outcome,
                                         'completed': self.info()['completed']}, callback)
                 state, error = 'COMPLETED', None
+            except LowDiskSpace as exc:
+                state, error = 'PAUSED_DISK', str(exc)
             except (Stopped, KeyboardInterrupt):
                 state, error = 'STOPPED', None
             except Exception as exc:
