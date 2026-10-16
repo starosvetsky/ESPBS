@@ -5,7 +5,7 @@ import json
 import re
 import time
 from urllib.parse import urljoin, urlsplit
-from urllib.robotparser import RobotFileParser
+from .robots import Robots
 
 import requests
 from bs4 import BeautifulSoup
@@ -106,15 +106,11 @@ class Client:
             text = self.get(self.robots_url)
             # urllib handles ordinary rules. Supplement wildcard rules, which
             # urllib does not implement, conservatively for this bounded source.
-            self.rules = RobotFileParser()
+            self.rules = Robots()
             self.rules.parse(text.splitlines())
-            self.wildcards = [line.split(':', 1)[1].strip() for line in text.splitlines()
-                              if line.lower().startswith('disallow:') and '*' in line]
         if self.rules is not None:
             path = urlsplit(url).path + ('?' + urlsplit(url).query if urlsplit(url).query else '')
-            if not self.rules.can_fetch(AGENT, url) or any(
-                re.match(re.escape(rule).replace(r'\*', '.*').replace(r'\$', '$'), path)
-                for rule in self.wildcards):
+            if not self.rules.can_fetch(AGENT, url):
                 raise ValueError('robots.txt disallows ' + url)
         while time.monotonic() - self.last_request < 2:
             if self.stopped():

@@ -6,8 +6,8 @@ import json
 import re
 import socket
 import time
-from urllib.parse import urljoin, urlsplit, urlunsplit
-from urllib.robotparser import RobotFileParser
+from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qsl, urlencode
+from .robots import Robots
 
 from bs4 import BeautifulSoup
 import soupsieve
@@ -42,6 +42,24 @@ def public_addresses(host):
     return addresses
 
 
+def normalize_input(value):
+    url = public_url(value.strip())
+    p = urlsplit(url)
+    if 'https:' in p.path or 'http:' in p.path:
+        raise ValueError('В поле вставлены две ссылки подряд. Укажите один адрес страницы.')
+    query = urlencode([(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True)
+                       if not k.lower().startswith('utm_') and k.lower() not in ('ysclid', 'yclid', 'gclid', 'fbclid', 'etext')])
+    path = p.path
+    if p.hostname == 'olnisa.ru' and path.startswith('/manufacturers/') and not path.endswith('/'):
+        path += '/'
+    return urlunsplit((p.scheme, p.netloc, path, query, ''))
+
+
+class Redirect(Exception):
+    def __init__(self, url):
+        self.url = url
+
+
 class Client:
     def __init__(self, url, stopped=lambda: False):
         self.origin = 'https://' + urlsplit(public_url(url)).netloc
@@ -53,24 +71,27 @@ class Client:
     def close(self):
         pass
 
-    def get(self, url):
+    def get(self, url, _redirects=0):
         url = public_url(url)
         p = urlsplit(url)
         if 'https://' + p.netloc != self.origin:
             raise ValueError('Ссылка выходит за пределы выбранного сайта')
         if self.rules is None:
             text = self._request(self.origin + '/robots.txt', robots=True)
-            self.rules = RobotFileParser()
+            self.rules = Robots()
             self.rules.parse(text.splitlines())
-            self.wildcards = [line.split(':',1)[1].split('#')[0].strip() for line in text.splitlines()
-                              if line.lower().startswith('disallow:') and '*' in line]
             self.delay = max(2, self.rules.crawl_delay(AGENT) or self.rules.crawl_delay('*') or 0)
         path = p.path + ('?' + p.query if p.query else '')
-        if not self.rules.can_fetch(AGENT, url) or any(
-                re.match(re.escape(rule).replace(r'\*', '.*').replace(r'\$', '$'), path)
-                for rule in self.wildcards):
+        if not self.rules.can_fetch(AGENT, url):
             raise ValueError('robots.txt запрещает ' + url)
-        return self._request(url)
+        try:
+            result = self._request(url)
+            self.last_url = url
+            return result
+        except Redirect as redirect:
+            if _redirects >= 5:
+                raise ValueError('Слишком много перенаправлений: ' + url)
+            return self.get(redirect.url, _redirects + 1)
 
     def _request(self, url, robots=False):
         while time.monotonic() - self.last_request < self.delay:
@@ -93,6 +114,13 @@ class Client:
             response = conn.getresponse()
             if robots and response.status == 404:
                 return ''
+            if not robots and response.status in (301, 302, 303, 307, 308):
+                location = response.getheader('Location')
+                if isinstance(location, str) and location:
+                    target = public_url(urljoin(url, location))
+                    if 'https://' + urlsplit(target).netloc != self.origin:
+                        raise ValueError('Перенаправление на другой сайт требует проверки: ' + target)
+                    raise Redirect(target)
             if response.status != 200:
                 raise ValueError(f'HTTP {response.status}: {url}; редиректы и ограничения не обходятся')
             chunks, size = [], 0
@@ -158,6 +186,9 @@ class Adapter:
         candidates = objects(soup)
         # Multiple products are a listing, never silently select a related item.
         raw = candidates[0] if len(candidates) == 1 else {}
+        if not candidates:
+            from .html_sources import product as html_product
+            raw = html_product(soup, url)
         def field(key, fallback=''):
             selector = self.selectors.get(key)
             node = soup.select_one(selector) if selector else None
@@ -213,15 +244,19 @@ class Adapter:
         selector = self.selectors.get('product_links')
         if selector:
             links = valid(a.get('href','') for a in soup.select(selector) if a.get('href'))
+        from .html_sources import listing as html_listing
+        html_links, html_pages = html_listing(soup, url)
         if not links:
+            links = valid(html_links)
+        if not links and not html_pages:
             candidates = objects(soup)
             if len(candidates) > 1:
                 links = valid(x.get('url') for x in candidates if x.get('url'))
             else:
                 self.product(html, url)
                 links = [url]
-        if not links:
-            raise ValueError('Нет ссылок на товары: задайте product_links в правилах сайта')
+        if not links and not html_pages:
+            raise ValueError('Каталог не распознан: для структуры этого сайта требуется адаптер')
         selector = self.selectors.get('next_links')
-        pages = valid(a.get('href','') for a in soup.select(selector) if a.get('href')) if selector else []
+        pages = valid(a.get('href','') for a in soup.select(selector) if a.get('href')) if selector else valid(html_pages)
         return links, pages

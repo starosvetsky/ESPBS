@@ -19,6 +19,14 @@ def advertised_count(html):
     return int(re.sub(r'\s', '', match[1])) if match else None
 
 
+def discovery_warning(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    if any(urlsplit(a.get('href') or a.get('data-url') or '').query
+           for a in soup.select('a.page_link[href], .catalog-show-all[data-url]')):
+        return 'Часть страниц Olnisa содержит параметры, запрещённые robots.txt. Собираются разрешённые страницы и подкатегории; полнота не гарантируется.'
+    return ''
+
+
 def safe_url(value, base=CATALOG):
     url = urljoin(base, value)
     p = urlsplit(url)
@@ -46,14 +54,22 @@ def listing(html, url):
             except ValueError:
                 # A tracking/query link must not abort otherwise valid results.
                 continue
-    if not urls:
-        raise ValueError('Карточки Olnisa не найдены; проверьте структуру страницы')
     # Follow published path pagination, not robots-disallowed query variants.
     pages = []
     for a in soup.select('a.page_link[href], .catalog-show-all[data-url]'):
         candidate = urljoin(url, a.get('href') or a.get('data-url'))
         if re.fullmatch(re.escape(category) + r'page-[1-9]\d*/', candidate):
             pages.append(safe_url(candidate))
+    if not pages:
+        for a in soup.select('.cat-menu a[href]'):
+            candidate = urljoin(url, a['href'])
+            if candidate.startswith(category) and candidate != category:
+                try:
+                    pages.append(safe_url(candidate))
+                except ValueError:
+                    continue
+    if not urls and not pages:
+        raise ValueError('Карточки и подкатегории Olnisa не найдены; проверьте структуру страницы')
     return list(dict.fromkeys(urls)), list(dict.fromkeys(pages))
 
 

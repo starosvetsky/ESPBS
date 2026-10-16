@@ -6,9 +6,9 @@
   <section class="intro"><div><p class="eyebrow">МАГАЗИН → ПРОИЗВОДИТЕЛЬ → РЕЗУЛЬТАТ</p><h1>Сбор данных<br><em>под контролем.</em></h1><p>Выберите источник. Получите предложения магазина, официальные характеристики и фотографии в одной карточке.</p></div>
   <form id="new-job">
 <label>Ссылка магазина, категории или товара<input id="start-url" type="url" placeholder="https://…" required></label>
-<label>Фотографии<select id="photo-policy"><option value="official">Только с официального сайта производителя</option><option value="none">Без фотографий</option></select></label>
+<label>Фотографии<select id="photo-policy"><option value="store">С сайта</option><option value="official" selected>С официального сайта</option><option value="fallback">С сайта; если отсутствуют — с официального</option></select></label>
 <button id="start" disabled>Собрать весь каталог</button>
-<small id="source-help">Соберём доступные товары без лимита. Для известных официальных сайтов проверим дополнительные данные. Фото магазина не берём.</small>
+<small id="source-help">Соберём доступные товары без лимита. Фото Olnisa запрещены: в режиме «С сайта» их не будет, в третьем режиме проверим официальный источник.</small>
 </form></section>
   <section id="probe-result" aria-live="polite"></section>
 <p id="storage" role="status">Проверка свободного места…</p><section class="layout">

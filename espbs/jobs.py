@@ -81,7 +81,7 @@ class Job:
             config['auto_enrich'] = True
         if limit is not None and (type(limit) is not int or not 1 <= limit <= 9223372036854775807):
             raise ValueError('Лимит должен быть положительным целым числом или null (весь каталог)')
-        if photo_policy not in ('official', 'none'):
+        if photo_policy not in ('store', 'official', 'fallback', 'none'):
             raise ValueError('Неизвестный режим фотографий')
         config['photo_policy'] = photo_policy
         require_space(root, 256 * MIB)
@@ -303,7 +303,18 @@ class Job:
                                 raise ValueError('Проверено 100 000 страниц каталога; проверьте пагинацию')
                         require_space(self.root, 256 * MIB)
                         html = client.get(page[0])
-                        urls, pages = adapter.listing(html, page[0])
+                        final_page = getattr(client, 'last_url', None)
+                        final_page = final_page if isinstance(final_page, str) else page[0]
+                        urls, pages = adapter.listing(html, final_page)
+                        if config['source'] == 'olnisa' and not config.get('source_warning'):
+                            warning = olnisa.discovery_warning(html)
+                            if warning:
+                                config['source_warning'] = warning
+                                with self.db() as db:
+                                    saved = json.loads(db.execute('SELECT value FROM config').fetchone()[0])
+                                    saved['source_warning'] = warning
+                                    db.execute('UPDATE config SET value=?', (json.dumps(saved),))
+                                self.event('source_warning', {'error': warning}, callback)
                         if config['source'] == 'olnisa' and page[0] == config['start_url']:
                             config['expected_total'] = olnisa.advertised_count(html)
                             with self.db() as db:
@@ -335,12 +346,27 @@ class Job:
                             with self.db() as db:
                                 original = json.loads(db.execute('SELECT payload FROM inputs WHERE id=?', (item[0],)).fetchone()[0])
                             record = enricher.enrich(original)
+                            from .photos import select as select_photos
+                            record = select_photos(record, config.get('photo_policy', 'official'), original.get('original_record', original))
                             record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
                             self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
                         else:
-                            record = adapter.product(client.get(item[0]), item[0])
+                            html = client.get(item[0])
+                            final_url = getattr(client, 'last_url', None)
+                            final_url = final_url if isinstance(final_url, str) else item[0]
+                            record = adapter.product(html, final_url)
+                            from .photos import extract, OFFICIAL_HOSTS
+                            from urllib.parse import urlsplit
+                            if config.get('photo_policy') in ('store', 'fallback') or urlsplit(final_url).hostname in OFFICIAL_HOSTS:
+                                record['images'] = extract(html, final_url)
+                                record.setdefault('provenance', {})['images'] = {'source_url': final_url, 'policy': config.get('photo_policy', 'official')}
+                                record['photo_policy'] = config.get('photo_policy', 'official')
                         if official_client is not None:
+                            from copy import deepcopy
+                            source_record = deepcopy(record)
                             record = enrich(record, official_client)
+                            from .photos import select as select_photos
+                            record = select_photos(record, config.get('photo_policy', 'official'), source_record)
                             self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
                         elif config['source'] == 'eltex':
                             record['images'] = official_images(record)
@@ -401,7 +427,7 @@ class Job:
                 config['child_id'] = child.id
                 with self.db() as db:
                     db.execute('UPDATE config SET value=?', (json.dumps({k: config[k] for k in (
-                        'source','start_url','enrichment','selectors','auto_enrich','child_id','photo_policy','expected_total') if k in config}),))
+                        'source','start_url','enrichment','selectors','auto_enrich','child_id','photo_policy','expected_total','source_warning') if k in config}),))
                 from .api import launch_worker
                 launch_worker(self.root, child.id)
             except Exception as exc:

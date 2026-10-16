@@ -130,7 +130,8 @@ class Directory:
 
 
 def detect(root, url, selectors=None):
-    url = public_url(url)
+    from .universal import normalize_input
+    url = normalize_input(url)
     profile = Directory(root).profile(url) if selectors is None else rules(selectors)
     host = urlsplit(url).hostname
     if not profile and host == 'olnisa.ru':
@@ -224,6 +225,11 @@ class Enricher:
         original.pop('original_record', None)
         result = copy.deepcopy(original)
         result['original_record'] = original
+        from .photos import OFFICIAL_HOSTS
+        if OFFICIAL_HOSTS.get(urlsplit(original.get('source_url', '')).hostname, '').casefold() == original.get('manufacturer', '').casefold() and original.get('manufacturer'):
+            result['enrichment'] = {'status': 'SOURCE_OFFICIAL', 'source_url': original['source_url'],
+                                    'reason': 'Товар уже собран с официального сайта'}
+            return result
         result['images'] = []
         brand, mpn = original.get('manufacturer','').strip(), original.get('mpn','').strip()
         def fail(status, reason):
