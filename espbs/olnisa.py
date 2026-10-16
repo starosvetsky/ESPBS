@@ -23,28 +23,36 @@ def safe_url(value, base=CATALOG):
     url = urljoin(base, value)
     p = urlsplit(url)
     if (p.scheme != 'https' or p.netloc != 'olnisa.ru' or p.fragment or p.query
-            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-zA-Z0-9_-]+/(?:[a-zA-Z0-9_-]+/)?', p.path))):
+            or not (p.path == '/robots.txt' or re.fullmatch(r'/manufacturers/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/', p.path))):
         raise ValueError('Укажите раздел производителя Olnisa /manufacturers/бренд/ или его карточку')
     return url
 
 
 def listing(html, url):
+    url = safe_url(url)
     soup = BeautifulSoup(html, 'html.parser')
     if soup.select_one('.catalog-detail-mini-params h1'):
         return [safe_url(url)], []
     urls = []
     section = 'https://olnisa.ru/' + '/'.join(urlsplit(url).path.strip('/').split('/')[:2]) + '/'
+    # Pagination belongs to the selected category, not the entire manufacturer.
+    # The same base must be recovered when parsing page 2 and later pages.
+    category = re.sub(r'/page-[1-9]\d*/$', '/', url)
     for a in soup.select('a.catalog-item[href]'):
         candidate = urljoin(url, a['href'])
         if candidate.startswith(section) and candidate != section:
-            urls.append(safe_url(candidate))
+            try:
+                urls.append(safe_url(candidate))
+            except ValueError:
+                # A tracking/query link must not abort otherwise valid results.
+                continue
     if not urls:
         raise ValueError('Карточки Olnisa не найдены; проверьте структуру страницы')
     # Follow published path pagination, not robots-disallowed query variants.
     pages = []
     for a in soup.select('a.page_link[href], .catalog-show-all[data-url]'):
         candidate = urljoin(url, a.get('href') or a.get('data-url'))
-        if re.fullmatch(re.escape(section) + r'page-\d+/', candidate):
+        if re.fullmatch(re.escape(category) + r'page-[1-9]\d*/', candidate):
             pages.append(safe_url(candidate))
     return list(dict.fromkeys(urls)), list(dict.fromkeys(pages))
 
