@@ -165,21 +165,24 @@ def rules(value):
 
 def objects(soup):
     found = []
-    def walk(value):
+    def walk(value, depth=0):
+        if depth > 20:
+            return
         if isinstance(value, list):
             for item in value:
-                walk(item)
+                walk(item, depth + 1)
         elif isinstance(value, dict):
             kind = value.get('@type', [])
-            if kind == 'Product' or isinstance(kind, list) and 'Product' in kind:
+            kinds = kind if isinstance(kind, list) else [kind]
+            if any(isinstance(k, str) and k.rsplit('/', 1)[-1] == 'Product' for k in kinds):
                 found.append(value)
-            for key in ('@graph', 'itemListElement', 'item'):
+            for key in ('@graph', 'itemListElement', 'item', 'mainEntity'):
                 if key in value:
-                    walk(value[key])
+                    walk(value[key], depth + 1)
     for script in soup.select('script[type="application/ld+json"]'):
         try:
             walk(json.loads(script.get_text()))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RecursionError):
             continue
     return found
 
@@ -193,9 +196,16 @@ class Adapter:
         candidates = objects(soup)
         # Multiple products are a listing, never silently select a related item.
         raw = candidates[0] if len(candidates) == 1 else {}
+        declared_url = raw.get('url')
+        if isinstance(declared_url, str) and declared_url:
+            declared = urlsplit(urljoin(url, declared_url))
+            current = urlsplit(url)
+            if (declared.netloc, declared.path.rstrip('/')) != (current.netloc, current.path.rstrip('/')):
+                raise ValueError('Разметка Product относится к другой странице; текущий адрес не подтверждён как карточка')
         if not candidates:
             from .html_sources import product as html_product
-            raw = html_product(soup, url)
+            from .recognition import html_product as inferred_product, micro_product, clean
+            raw = micro_product(clean(soup)) or html_product(soup, url) or inferred_product(soup, url)
         def field(key, fallback=''):
             selector = self.selectors.get(key)
             node = soup.select_one(selector) if selector else None
@@ -205,7 +215,7 @@ class Adapter:
             brand = brand.get('name', '')
         name = field('name', raw.get('name', ''))
         if not isinstance(name, str) or not name.strip():
-            raise ValueError('Товар не распознан: нет однозначного Product JSON-LD или правил поля name')
+            raise ValueError('Карточка не распознана: нужны структурированные данные товара или название вместе с артикулом и характеристиками. Один заголовок раздела не считается товаром; доступны правила CSS.')
         attributes = {}
         for prop in raw.get('additionalProperty', []):
             if isinstance(prop, dict) and prop.get('name') and 'value' in prop:
@@ -217,9 +227,12 @@ class Adapter:
             offers = {}
         brand, mpn = str(field('manufacturer', brand) or ''), str(field('mpn', raw.get('mpn','')) or '')
         issues = [label for value, label in [(brand, 'Нет бренда'), (mpn, 'Нет точного MPN')] if not value]
+        if raw.get('_recognition') == 'html-evidence':
+            issues.append('Поля определены по структуре HTML; требуется проверка')
         # Store-side images are deliberately excluded, including nested JSON-LD.
         return {'source': urlsplit(url).hostname, 'source_url': public_url(url), 'external_id': public_url(url),
                 'name': name, 'manufacturer': brand, 'mpn': mpn,
+                'sku': str(raw.get('sku') or ''),
                 'description': str(field('description', raw.get('description','')) or ''),
                 'attributes': attributes, 'documents': [], 'images': [],
                 'offer': {'price_text': str(field('price', offers.get('price',''))),
@@ -229,7 +242,7 @@ class Adapter:
                 'quality': {'status': 'REVIEW' if issues else 'GOOD', 'issues': issues,
                             'attribute_count': len(attributes)},
                 'provenance': {'collected_at': utc_now(), 'html_sha256': hashlib.sha256(html.encode()).hexdigest(),
-                               'parser': 'jsonld-css-v1', 'selectors': self.selectors},
+                               'parser': 'jsonld-css-v2', 'recognition': raw.get('_recognition', 'jsonld' if candidates else 'adapter-or-css'), 'selectors': self.selectors},
                 'attachments_downloaded': False}
 
     def listing(self, html, url):
@@ -253,14 +266,32 @@ class Adapter:
             links = valid(a.get('href','') for a in soup.select(selector) if a.get('href'))
         from .html_sources import listing as html_listing
         html_links, html_pages = html_listing(soup, url)
+        from .recognition import discover, html_product as inferred_product, itemlist_links, pagination, clean
+        candidates = objects(soup)
+        declared = candidates[0].get('url') if len(candidates) == 1 else None
+        declared_links = valid([declared]) if isinstance(declared, str) and declared else []
+        foreign_card = bool(declared_links and urlsplit(declared_links[0]).path.rstrip('/') != urlsplit(url).path.rstrip('/'))
+        # A primary structured card takes precedence over related-product links.
+        if not selector and not foreign_card and not itemlist_links(soup, url) and (len(candidates) == 1 or inferred_product(soup, url)):
+            self.product(html, url)
+            return [url], []
         if not links:
             links = valid(html_links)
+        if links:
+            html_pages = list(dict.fromkeys(html_pages + pagination(clean(soup), url)))
+        if not links and not html_pages:
+            discovered, extra_pages = discover(soup, url)
+            links = valid(discovered) or (declared_links if foreign_card else [])
+            html_pages = extra_pages if links else []
         if not links and not html_pages:
             candidates = objects(soup)
             if len(candidates) > 1:
                 links = valid(x.get('url') for x in candidates if x.get('url'))
             else:
-                self.product(html, url)
+                try:
+                    self.product(html, url)
+                except ValueError as error:
+                    raise ValueError('Структура страницы пока не распознана: не найдены надёжные ссылки на товары или признаки отдельной карточки. Возможно, данные загружаются JavaScript; нужны правила CSS или адаптер.') from error
                 links = [url]
         if not links and not html_pages:
             raise ValueError('Каталог не распознан: для структуры этого сайта требуется адаптер')
