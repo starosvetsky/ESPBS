@@ -45,6 +45,35 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_inventory_includes_legacy_batches_search_and_cleanup(self):
+        first, second = Batch.create(self.temp.name), Batch.create(self.temp.name)
+        first.add({**record(1), 'name': 'Сетевой коммутатор <script>'})
+        second.add(record(2))
+        _, summary = self.request('/api/inventory/batches')
+        self.assertEqual(summary['record_count'], 2)
+        _, page = self.request('/api/inventory/products?limit=1')
+        self.assertTrue(page['has_more'])
+        _, next_page = self.request('/api/inventory/products?limit=1&after=' + page['next_cursor'])
+        self.assertFalse(next_page['has_more'])
+        self.assertNotEqual(page['products'][0]['cursor'], next_page['products'][0]['cursor'])
+        from urllib.parse import quote
+        _, found = self.request('/api/inventory/products?q=' + quote('СЕТЕВОЙ'))
+        self.assertEqual(found['products'][0]['batch_id'], first.id)
+        _, filtered = self.request('/api/inventory/products?batch=' + second.id)
+        self.assertEqual(len(filtered['products']), 1)
+        with first.connection() as db:
+            db.execute('DELETE FROM records')
+        _, summary = self.request('/api/inventory/batches')
+        self.assertEqual(summary['record_count'], 1)
+        _, found = self.request('/api/inventory/products?q=' + quote('СЕТЕВОЙ'))
+        self.assertEqual(found['products'], [])
+        for query in ('limit=0', 'limit=101', 'after=bad', 'batch=../../other'):
+            with self.assertRaises(HTTPError) as error:
+                self.request('/api/inventory/products?' + query)
+            self.assertEqual(error.exception.code, 400)
+        with urlopen(self.base + '/inventory.html') as response:
+            self.assertIn('inventory.js', response.read().decode())
+
     def test_catalog_paging_and_traffic_status(self):
         from espbs.catalog import Catalog
         from espbs.traffic import Traffic, SourceBlocked

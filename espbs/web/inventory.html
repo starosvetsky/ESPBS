@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Товары на сервере — ESPBS</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="app.css"><link rel="stylesheet" href="inventory.css"></head>
+<body><header><div><b>ESPBS</b><span>ХРАНИЛИЩЕ ТОВАРОВ</span></div><a href="./">Управление сбором →</a></header>
+<main><section class="inventory-intro"><p class="eyebrow">СОХРАНЁННЫЕ РЕЗУЛЬТАТЫ</p><h1>Товары<br><em>на сервере.</em></h1><p>Посмотрите, что уже собрано, и откройте карточку товара.</p>
+<p id="totals" role="status">Подключение к хранилищу…</p><small>Считаются записи в сохранённых партиях. Повторные сборы и обогащение могут содержать один и тот же товар. Удалённые записи не показываются.</small></section>
+<form id="filters"><label>Партия<select id="batch"><option value="">Все партии</option></select></label><label>Поиск по сохранённым полям<input id="query" type="search" maxlength="200" placeholder="Название, артикул, бренд…"></label><button>Найти</button><button id="reload" type="button" class="ghost">Обновить</button></form>
+<p id="status" role="status" aria-live="polite"></p><section id="listing" aria-label="Сохранённые товары"></section>
+<div class="actions pager"><button id="prev" class="ghost" disabled>← Назад</button><span id="page"></span><button id="next" class="ghost" disabled>Далее →</button></div>
+</main><dialog id="card" aria-labelledby="card-title"><button id="close" class="ghost">Закрыть ✕</button><div id="card-content"></div></dialog><script src="inventory.js"></script></body></html>

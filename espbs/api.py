@@ -114,6 +114,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            path = urlsplit(self.path).path
+            if path in ('/inventory', '/inventory.html', '/inventory.js', '/inventory.css'):
+                name = 'inventory.html' if path == '/inventory' else path[1:]
+                mime = {'html': 'text/html', 'js': 'text/javascript', 'css': 'text/css'}
+                return self.send_asset(name, mime[name.rsplit('.', 1)[1]] + '; charset=utf-8')
+            if path == '/api/inventory/batches':
+                from .inventory import batches
+                rows = batches(self.server.root)
+                return self.send_json(200, {'batches': rows, 'record_count': sum(x['record_count'] for x in rows)})
+            if path == '/api/inventory/products':
+                from .inventory import products
+                query = parse_qs(urlsplit(self.path).query)
+                return self.send_json(200, products(self.server.root,
+                    query.get('batch', [''])[0], query.get('after', [''])[0],
+                    query.get('q', [''])[0], int(query.get('limit', ['50'])[0])))
             if urlsplit(self.path).path == '/api/catalog':
                 from .catalog import Catalog
                 query = parse_qs(urlsplit(self.path).query)
