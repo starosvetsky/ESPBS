@@ -45,6 +45,25 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_catalog_paging_and_traffic_status(self):
+        from espbs.catalog import Catalog
+        from espbs.traffic import Traffic, SourceBlocked
+        catalog = Catalog(self.temp.name)
+        catalog.add(record(1), 'first')
+        catalog.add(record(2), 'second')
+        _, first = self.request('/api/catalog?limit=1')
+        _, second = self.request('/api/catalog?limit=1&after=' + first['next_cursor'])
+        self.assertNotEqual(first['products'][0]['id'], second['products'][0]['id'])
+        _, empty = self.request('/api/catalog?after=' + second['next_cursor'])
+        self.assertEqual(empty['products'], [])
+        with self.assertRaises(HTTPError) as error:
+            self.request('/api/catalog?limit=101')
+        self.assertEqual(error.exception.code, 400)
+        with self.assertRaises(SourceBlocked):
+            Traffic(self.temp.name).response('https://example.org/a', 403)
+        _, value = self.request('/api/traffic')
+        self.assertEqual(value['domains'][0]['reason'], 'HTTP 403')
+
     @patch('espbs.api.launch_worker')
     def test_create_list_and_actions(self, launch):
         status, created = self.request('/api/jobs', 'POST', {'source': 'eltex', 'limit': 2})

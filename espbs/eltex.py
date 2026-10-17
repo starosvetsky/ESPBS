@@ -90,7 +90,9 @@ class Client:
     validate_url = staticmethod(safe_url)
     robots_url = 'https://eltex.ru/robots.txt'
 
-    def __init__(self, stopped=lambda: False):
+    def __init__(self, stopped=lambda: False, root='data'):
+        from .traffic import Traffic
+        self.traffic = Traffic(root)
         self.stopped = stopped
         self.session = requests.Session()
         self.session.headers['User-Agent'] = AGENT
@@ -119,7 +121,9 @@ class Client:
         if self.stopped():
             raise Stopped()
         self.last_request = time.monotonic()
-        with self.session.get(url, timeout=(5, 20), stream=True, allow_redirects=False) as response:
+        delay = max(2, self.rules.crawl_delay(AGENT) or 0) if self.rules else 2
+        with self.traffic.request(url, delay, self.stopped), self.session.get(url, timeout=(5, 20), stream=True, allow_redirects=False) as response:
+            self.traffic.response(url, response.status_code, response.headers.get('Retry-After'))
             if response.is_redirect:
                 # Refuse redirects rather than silently leaving the checked URL.
                 raise ValueError('Source redirected; inspect before resuming: ' + response.headers.get('Location', ''))

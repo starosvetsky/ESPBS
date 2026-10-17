@@ -272,15 +272,17 @@ class Job:
             with self.db() as db:
                 db.execute("UPDATE job SET state='RUNNING',stop=0,error=NULL,updated_at=?", (utc_now(),))
             owned = client is None
-            client = client or (PublicClient(config['start_url'], self.stopped) if config['source'] == 'generic'
-                                else None if config['source'] == 'enrichment' else adapter.Client(self.stopped))
+            client = client or (PublicClient(config['start_url'], self.stopped, root=self.root) if config['source'] == 'generic'
+                                else None if config['source'] == 'enrichment' else adapter.Client(self.stopped, root=self.root))
             enricher = Enricher(self.root, self.stopped) if config['source'] == 'enrichment' else None
             official_owned = official_client is None
             if config['enrichment'] == 'eltex':
-                official_client = official_client or eltex.Client(self.stopped)
+                official_client = official_client or eltex.Client(self.stopped, root=self.root)
             try:
                 self.event('started', {}, callback)
                 require_space(self.root, 256 * MIB)
+                from .catalog import Catalog
+                catalog = Catalog(self.root)
                 if enricher:
                     # Store only configuration fields when checkpointing inputs.
                     with self.db() as db:
@@ -386,6 +388,7 @@ class Job:
                             record['images'] = []
                         require_space(self.root, 256 * MIB)
                         outcome = batch.add(record)
+                        catalog.add(record, self.id)
                         # A crash here replays this URL; Batch.add prevents duplicate rows.
                         with self.db() as db:
                             db.execute('UPDATE items SET done=1,outcome=?,quality=? WHERE url=?',

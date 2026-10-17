@@ -33,6 +33,10 @@ def main():
     collect.add_argument('--start-url', default='')
     collect.add_argument('--enrichment', choices=['none', 'eltex'])
     commands.add_parser('runs')
+    catalog = commands.add_parser('catalog', help='Read latest source records with stable IDs')
+    catalog.add_argument('--after', default='')
+    catalog.add_argument('--limit', type=int, default=50)
+    commands.add_parser('traffic', help='Read shared domain restrictions')
     serve = commands.add_parser('serve', help='Run the local management API and dashboard')
     serve.add_argument('--host', default='127.0.0.1')
     serve.add_argument('--port', type=int, default=8765)
@@ -43,11 +47,17 @@ def main():
         command.add_argument('job_id')
     args = parser.parse_args()
     try:
-        if args.command == 'serve':
+        if args.command == 'catalog':
+            from .catalog import Catalog
+            result = Catalog(args.data_dir).products(args.after, args.limit)
+        elif args.command == 'traffic':
+            from .traffic import Traffic
+            result = Traffic(args.data_dir).status()
+        elif args.command == 'serve':
             from .api import serve
             serve(args.data_dir, args.host, args.port)
             return 0
-        if args.command in ('collect', 'resume', 'stop', 'run-status', 'events', 'runs', 'worker'):
+        elif args.command in ('collect', 'resume', 'stop', 'run-status', 'events', 'runs', 'worker'):
             from .jobs import Job
             if args.command == 'runs':
                 result = [Job(args.data_dir, p.stem).info() for p in

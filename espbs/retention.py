@@ -63,6 +63,8 @@ def cleanup(job, confirmation):
             with job.db() as db:
                 db.execute("UPDATE retention SET state='CLEANING' WHERE id=1")
         # Keep batch and job metadata for history. Each step is safe to repeat.
+        from .catalog import Catalog
+        Catalog(job.root).release(job.id)
         with batch.connection() as db:
             db.execute('DELETE FROM records')
         with batch.connection() as db:

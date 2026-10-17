@@ -61,7 +61,9 @@ class Redirect(Exception):
 
 
 class Client:
-    def __init__(self, url, stopped=lambda: False):
+    def __init__(self, url, stopped=lambda: False, root='data'):
+        from .traffic import Traffic
+        self.traffic = Traffic(root)
         self.origin = 'https://' + urlsplit(public_url(url)).netloc
         self.stopped = stopped
         self.rules = None
@@ -94,6 +96,10 @@ class Client:
             return self.get(redirect.url, _redirects + 1)
 
     def _request(self, url, robots=False):
+        with self.traffic.request(url, self.delay, self.stopped):
+            return self._request_locked(url, robots)
+
+    def _request_locked(self, url, robots=False):
         while time.monotonic() - self.last_request < self.delay:
             if self.stopped():
                 raise Stopped()
@@ -112,6 +118,7 @@ class Client:
             conn.request('GET', p.path + ('?' + p.query if p.query else ''),
                          headers={'User-Agent': AGENT, 'Accept-Encoding': 'identity'})
             response = conn.getresponse()
+            self.traffic.response(url, response.status, response.getheader('Retry-After'))
             if robots and response.status == 404:
                 return ''
             if not robots and response.status in (301, 302, 303, 307, 308):

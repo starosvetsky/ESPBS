@@ -114,6 +114,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            if urlsplit(self.path).path == '/api/catalog':
+                from .catalog import Catalog
+                query = parse_qs(urlsplit(self.path).query)
+                rows = Catalog(self.server.root).products(query.get('after', [''])[0], int(query.get('limit', ['50'])[0]))
+                return self.send_json(200, {'products': rows, 'next_cursor': rows[-1]['id'] if rows else None})
+            if self.path == '/api/traffic':
+                from .traffic import Traffic
+                return self.send_json(200, {'domains': Traffic(self.server.root).status()})
             if self.path == '/api/directory':
                 from .directory import Directory
                 directory = Directory(self.server.root)

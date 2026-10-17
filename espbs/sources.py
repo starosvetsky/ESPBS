@@ -5,6 +5,7 @@ from urllib.parse import urljoin, urlsplit
 
 from . import eltex, olnisa
 from .storage import utc_now
+from .traffic import SourceBlocked
 
 # Explicit aliases verified against official pages on 2026-10-15. Suffixes are
 # significant: MES2428_DC is not MES2428. Never infer aliases from fuzzy names.
@@ -82,7 +83,7 @@ def enrich(record, client):
             result['enrichment'] = {'status': 'MATCHED', 'method': 'reviewed_alias',
                                      'mpn': mpn, 'source_url': url,
                                      'alias_verified_at': '2026-10-15'}
-        except eltex.Stopped:
+        except (eltex.Stopped, SourceBlocked):
             raise
         except Exception as error:
             result['enrichment'] = {'status': 'ERROR', 'reason': str(error), 'source_url': url}

@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 from . import eltex, olnisa
 from .sources import ALIASES, enrich as legacy_enrich
 from .storage import canonical_json, utc_now
+from .traffic import SourceBlocked
 from .universal import Adapter, Client, public_url, rules, objects
 
 
@@ -149,7 +150,7 @@ def detect(root, url, selectors=None):
 def probe(root, url, selectors=None):
     config = detect(root, url, selectors)
     adapter = {'olnisa': olnisa, 'eltex': eltex}.get(config['source']) or Adapter(config.get('selectors'))
-    client = Client(config['start_url'])
+    client = Client(config['start_url'], root=root)
     html = client.get(config['start_url'])
     links, pages = adapter.listing(html, config['start_url'])
     samples, errors = [], []
@@ -157,7 +158,7 @@ def probe(root, url, selectors=None):
         try:
             record = adapter.product(html if link == config['start_url'] else client.get(link), link)
             samples.append(record)
-        except eltex.Stopped:
+        except (eltex.Stopped, SourceBlocked):
             raise
         except Exception as error:
             errors.append({'url': link, 'error': str(error)})
@@ -167,6 +168,7 @@ def probe(root, url, selectors=None):
 
 class Enricher:
     def __init__(self, root, stopped=lambda: False):
+        self.root = root
         self.directory = Directory(root)
         self.stopped = stopped
         self.clients = {}
@@ -211,7 +213,7 @@ class Enricher:
     def client(self, url):
         origin = urlsplit(url).netloc
         if origin not in self.clients:
-            self.clients[origin] = Client(url, self.stopped)
+            self.clients[origin] = Client(url, self.stopped, root=self.root)
         return self.clients[origin]
 
     def close(self):
@@ -250,7 +252,7 @@ class Enricher:
         if not url:
             try:
                 url = self.discover(manufacturer, mpn)
-            except eltex.Stopped:
+            except (eltex.Stopped, SourceBlocked):
                 raise
             except Exception as error:
                 return fail('ERROR', 'Поиск на официальном сайте: ' + str(error))
@@ -302,7 +304,7 @@ class Enricher:
                                      'cached': bool(cached and cached.get('revision') == revision)}
             result['quality'] = {'status': 'GOOD', 'issues': [], 'attribute_count': len(result['attributes'])}
             return result
-        except eltex.Stopped:
+        except (eltex.Stopped, SourceBlocked):
             raise
         except Exception as error:
             return fail('ERROR', str(error))
