@@ -5,7 +5,32 @@ function connection(ok){const el=$('#connection');el.textContent=ok?'API под�
 function jobButton(job){const b=document.createElement('button');b.className='job'+(selected===job.id?' active':'');b.innerHTML=`<span><b>${stateName[job.state]||job.state}</b><i>${job.completed}/${job.target ?? 'весь каталог'}</i></span><small>${job.id.slice(0,8)} · ${escapeHtml(sourceLabel(job.source))}</small>`;b.onclick=()=>select(job.id);return b}
 async function loadJobs(){try{const data=await api('api/jobs');connection(true);const box=$('#jobs');box.innerHTML='';data.jobs.forEach(j=>box.append(jobButton(j)));if(!data.jobs.length)box.innerHTML='<p class="empty">Заданий пока нет</p>';if(selected){const found=data.jobs.find(j=>j.id===selected);if(found)render(found)}}catch(e){connection(false)}}
 async function select(id){selected=id;eventCursor=0;productCursors=[''];await loadJobs();await loadDetail()}
-function render(job){const host=$('#detail');if(!host.querySelector('#job-title'))host.replaceChildren($('#detail-template').content.cloneNode(true));$('#job-title').textContent=job.id;$('#state').textContent=stateName[job.state]||job.state;$('#discovered').textContent=job.discovered;$('#completed').textContent=job.completed;$('#target').textContent=job.target ?? 'Весь каталог';$('#error').textContent=[job.error,job.source_warning].filter(Boolean).join(' · ');$('#stop').disabled=job.state!=='RUNNING';$('#resume').disabled=!['STOPPED','FAILED','READY','PAUSED_DISK'].includes(job.state);$('#stop').onclick=()=>action('stop');$('#resume').onclick=()=>action('resume');const ready=job.archive?.ready;$('#prepare').hidden=ready;$('#prepare').disabled=job.state!=='COMPLETED';$('#prepare').onclick=prepareArchive;$('#download').hidden=!ready;$('#download').href=`api/jobs/${job.id}/archive`;$('#archive-status').textContent=ready?'ZIP/XML готов к скачиванию':'Архив ещё не подготовлен';$('#archive-meta').textContent=ready?`${job.archive.record_count} товаров · ${formatBytes(job.archive.size)} · SHA-256 ${job.archive.sha256.slice(0,12)}…`:'Исходные записи останутся на сервере после скачивания.';renderRetention(job)}
+function render(job){
+ const host=$('#detail');if(!host.querySelector('#job-title'))host.replaceChildren($('#detail-template').content.cloneNode(true));
+ $('#job-title').textContent=job.id;$('#state').textContent=stateName[job.state]||job.state;
+ $('#discovered').textContent=job.discovered;$('#completed').textContent=job.completed;$('#target').textContent=job.target ?? 'Весь каталог';
+ $('#error').textContent=[job.error,job.source_warning].filter(Boolean).join(' · ');
+ $('#stop').disabled=job.state!=='RUNNING';$('#resume').disabled=!['STOPPED','FAILED','READY','PAUSED_DISK'].includes(job.state);
+ $('#stop').onclick=()=>action('stop');$('#resume').onclick=()=>action('resume');
+ renderArchive(job);renderRetention(job);
+}
+function renderArchive(job){
+ if(!$('#include-files')){
+  const label=document.createElement('label');label.id='include-files-label';
+  const input=document.createElement('input');input.type='checkbox';input.id='include-files';
+  label.append(input,document.createTextNode(' Скачать PDF и фото в ZIP (до 50 адресов, 256 МБ; пропуски — в отчёте)'));
+  $('#prepare').before(label);
+ }
+ const ready=job.archive?.ready,task=job.archive?.task||{},busy=['QUEUED','RUNNING'].includes(task.state);
+ $('#include-files-label').hidden=Boolean(ready);$('#include-files').disabled=busy;
+ $('#prepare').hidden=Boolean(ready);$('#prepare').disabled=job.state!=='COMPLETED'||busy;
+ $('#prepare').textContent=busy?'Подготовка на сервере…':'Подготовить ZIP/XML';$('#prepare').onclick=prepareArchive;
+ $('#download').hidden=!ready;$('#download').href=`api/jobs/${job.id}/archive`;
+ $('#archive-status').textContent=ready?'ZIP/XML готов к скачиванию':busy?'Скачиваются материалы и собирается архив':task.error||'Архив ещё не подготовлен';
+ const summary=job.archive?.attachment_summary;
+ const files=summary?` · файлов ${summary.unique_files} · ссылок с файлами ${summary.embedded}, пропущено ${summary.skipped}, ошибок ${summary.failed}`:' · вложения только ссылками';
+ $('#archive-meta').textContent=ready?`${job.archive.record_count} товаров · ${formatBytes(job.archive.size)}${files} · SHA-256 ${job.archive.sha256.slice(0,12)}…`:busy?'Можно закрыть страницу. Подготовка продолжится на сервере.':'Исходные записи сохраняются. Готовый архив не перезаписывается. Файловые домены вне сайта-источника не скачиваются.';
+}
 async function loadDetail(){
  if(!selected||detailBusy)return;detailBusy=true;const id=selected;const cursor=productCursors[productCursors.length-1];
  try{
@@ -26,7 +51,7 @@ async function loadDetail(){
 const escapeHtml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatBytes=value=>value<1024?`${value} Б`:value<1024*1024?`${(value/1024).toFixed(1)} КБ`:`${(value/1024/1024).toFixed(1)} МБ`;
 async function action(name){try{await api(`api/jobs/${selected}/${name}`,{method:'POST',body:'{}'});await loadJobs();await loadDetail()}catch(e){alert(e.message)}}
-async function prepareArchive(){const button=$('#prepare');button.disabled=true;button.textContent='Подготовка…';try{await api(`api/jobs/${selected}/archive`,{method:'POST',body:'{}'});await loadJobs();await loadDetail()}catch(e){button.disabled=false;button.textContent='Подготовить ZIP/XML';alert(e.message)}}
+async function prepareArchive(){const button=$('#prepare');button.disabled=true;button.textContent='Подготовка…';try{await api(`api/jobs/${selected}/archive`,{method:'POST',body:JSON.stringify({include_files:$('#include-files').checked})});await loadJobs();await loadDetail()}catch(e){button.disabled=false;button.textContent='Подготовить ZIP/XML';alert(e.message)}}
 $('#refresh').onclick=()=>{loadJobs();loadDetail()};
 timer=setInterval(()=>{loadJobs();loadDetail()},2000);
 

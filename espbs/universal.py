@@ -73,7 +73,7 @@ class Client:
     def close(self):
         pass
 
-    def get(self, url, _redirects=0):
+    def get(self, url, _redirects=0, *, sink=None, max_bytes=6 * 1024 * 1024):
         url = public_url(url)
         p = urlsplit(url)
         if 'https://' + p.netloc != self.origin:
@@ -87,19 +87,19 @@ class Client:
         if not self.rules.can_fetch(AGENT, url):
             raise ValueError('robots.txt запрещает ' + url)
         try:
-            result = self._request(url)
+            result = self._request(url) if sink is None else self._request(url, sink=sink, max_bytes=max_bytes)
             self.last_url = url
             return result
         except Redirect as redirect:
             if _redirects >= 5:
                 raise ValueError('Слишком много перенаправлений: ' + url)
-            return self.get(redirect.url, _redirects + 1)
+            return self.get(redirect.url, _redirects + 1, sink=sink, max_bytes=max_bytes)
 
-    def _request(self, url, robots=False):
+    def _request(self, url, robots=False, **kwargs):
         with self.traffic.request(url, self.delay, self.stopped):
-            return self._request_locked(url, robots)
+            return self._request_locked(url, robots, **kwargs)
 
-    def _request_locked(self, url, robots=False):
+    def _request_locked(self, url, robots=False, *, sink=None, max_bytes=6 * 1024 * 1024):
         while time.monotonic() - self.last_request < self.delay:
             if self.stopped():
                 raise Stopped()
@@ -130,6 +130,9 @@ class Client:
                     raise Redirect(target)
             if response.status != 200:
                 raise ValueError(f'HTTP {response.status}: {url}; редиректы и ограничения не обходятся')
+            length = response.getheader('Content-Length')
+            if length is not None and int(length) > max_bytes:
+                raise ValueError('Ответ превышает лимит размера')
             chunks, size = [], 0
             while True:
                 if self.stopped():
@@ -138,9 +141,16 @@ class Client:
                 if not chunk:
                     break
                 size += len(chunk)
-                if size > 6 * 1024 * 1024:
-                    raise ValueError('Страница превышает 6 MiB')
-                chunks.append(chunk)
+                if size > max_bytes:
+                    raise ValueError('Ответ превышает лимит размера')
+                if sink is None:
+                    chunks.append(chunk)
+                else:
+                    sink(chunk)
+            if length is not None and size != int(length):
+                raise ValueError('Ответ оборван: размер не совпадает с Content-Length')
+            if sink is not None:
+                return {'bytes': size, 'content_type': response.getheader('Content-Type', '')}
             return b''.join(chunks).decode(response.headers.get_content_charset() or 'utf-8', errors='replace')
         finally:
             conn.close()

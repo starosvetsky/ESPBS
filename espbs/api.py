@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -18,12 +19,19 @@ from .retention import receipt, confirm_copy, cleanup
 
 def archive_info(root, job_id):
     path = Path(root) / 'exports' / (job_id + '.zip')
+    batch_object = Batch(root, job_id)
     if not path.is_file():
-        return {'ready': False}
-    batch = Batch(root, job_id).info()
+        from .export_tasks import status
+        return {'ready': False, 'task': status(batch_object)}
+    batch = batch_object.info()
+    with zipfile.ZipFile(path) as archive:
+        if archive.getinfo('manifest.json').file_size > 65536:
+            raise ValueError('Manifest too large')
+        manifest = json.loads(archive.read('manifest.json'))
     return {'ready': True, 'filename': path.name, 'size': path.stat().st_size,
             'sha256': batch['archive_sha256'] or file_hash(path),
-            'record_count': batch['record_count']}
+            'record_count': batch['record_count'], 'attachments': manifest.get('attachments'),
+            'attachment_summary': manifest.get('attachment_summary')}
 
 
 def job_info(root, job):
@@ -230,10 +238,20 @@ class Handler(BaseHTTPRequestHandler):
             if parts[3] == 'cleanup':
                 return self.send_json(200, cleanup(job, self.body().get('confirmation')))
             if parts[3] == 'archive':
+                payload = self.body()
+                include_files = payload.get('include_files', False)
+                if type(include_files) is not bool:
+                    raise ValueError('include_files must be boolean')
                 if receipt(job):
                     raise ValueError('Copy already confirmed; archive preparation disabled')
                 if job.reconcile()['state'] != 'COMPLETED':
                     raise ValueError('Only a completed job can be archived')
+                if include_files:
+                    from .export_tasks import start
+                    return self.send_json(202, {'ready': False, 'task': start(self.server.root, job.id)})
+                from .export_tasks import status
+                if status(Batch(self.server.root, job.id)).get('state') in ('QUEUED', 'RUNNING'):
+                    raise ValueError('Подготовка архива с файлами уже выполняется')
                 export_batch(Batch(self.server.root, job.id), self.server.root / 'exports')
                 return self.send_json(201, archive_info(self.server.root, job.id))
             if parts[3] == 'stop':

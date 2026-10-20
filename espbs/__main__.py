@@ -24,6 +24,7 @@ def main():
     export = commands.add_parser("export", help="Seal a batch and build a verified ZIP")
     export.add_argument("batch_id")
     export.add_argument("--output", default="exports")
+    export.add_argument("--include-files", action="store_true", help="Embed bounded PDF/image files and a per-reference report")
     verify = commands.add_parser("verify", help="Verify a downloaded archive without a database")
     verify.add_argument("file", type=Path)
     verify.add_argument('--receipt', type=Path, help='Save a verification report for the server')
@@ -42,12 +43,17 @@ def main():
     serve.add_argument('--port', type=int, default=8765)
     worker = commands.add_parser('worker', help=argparse.SUPPRESS)
     worker.add_argument('job_id')
+    archive_worker = commands.add_parser('archive-worker', help=argparse.SUPPRESS)
+    archive_worker.add_argument('batch_id')
     for name in ('resume', 'stop', 'run-status', 'events'):
         command = commands.add_parser(name)
         command.add_argument('job_id')
     args = parser.parse_args()
     try:
-        if args.command == 'catalog':
+        if args.command == 'archive-worker':
+            from .export_tasks import run
+            result = run(args.data_dir, args.batch_id)
+        elif args.command == 'catalog':
             from .catalog import Catalog
             result = Catalog(args.data_dir).products(args.after, args.limit)
         elif args.command == 'traffic':
@@ -91,7 +97,7 @@ def main():
             if args.command == "status":
                 result = batch.info()
             elif args.command == "export":
-                result = {"archive": str(export_batch(batch, args.output)), **batch.info()}
+                result = {"archive": str(export_batch(batch, args.output, args.include_files)), **batch.info()}
             else:
                 counts = {"inserted": 0, "updated": 0, "unchanged": 0}
                 with args.file.open("rb") as stream:

@@ -62,13 +62,21 @@ def verify_archive(path, max_xml_bytes=MAX_XML_BYTES):
     DTDs and entities are rejected; the XML stream has an explicit size limit.
     """
     with zipfile.ZipFile(path) as archive:
-        if sorted(archive.namelist()) != ["manifest.json", "products.xml"]:
-            raise ValueError("Expected exactly manifest.json and products.xml")
+        if 'manifest.json' not in archive.namelist():
+            raise ValueError("Missing manifest.json")
         if archive.getinfo("manifest.json").file_size > 65536:
             raise ValueError("Manifest too large")
         manifest = json.loads(archive.read("manifest.json"))
-        if not isinstance(manifest, dict) or manifest.get("format") != "espbs-batch" or manifest.get("version") != 1:
+        if not isinstance(manifest, dict) or manifest.get("format") != "espbs-batch" or manifest.get("version") not in (1, 2):
             raise ValueError("Unsupported archive format")
+        if manifest['version'] == 1:
+            if sorted(archive.namelist()) != ["manifest.json", "products.xml"]:
+                raise ValueError("Expected exactly manifest.json and products.xml")
+        else:
+            from .attachments import verify
+            if manifest.get('attachments') != 'embedded-with-report':
+                raise ValueError('Invalid attachment mode')
+            verify(archive, manifest)
         if type(manifest.get("record_count")) is not int or manifest["record_count"] < 1:
             raise ValueError("Invalid record count")
         if type(manifest.get("xml_bytes")) is not int or not 0 < manifest["xml_bytes"] <= max_xml_bytes:
@@ -121,13 +129,13 @@ def verify_archive(path, max_xml_bytes=MAX_XML_BYTES):
     return {**manifest, "archive_sha256": file_hash(path)}
 
 
-def export_batch(batch, destination):
+def export_batch(batch, destination, include_files=False):
     from .jobs import worker_lock
     with worker_lock(batch.path.with_suffix('.maintenance.lock')):
-        return _export_batch(batch, destination)
+        return _export_batch(batch, destination, include_files)
 
 
-def _export_batch(batch, destination):
+def _export_batch(batch, destination, include_files=False):
     from .jobs import Job
     from .retention import receipt
     root = batch.path.parent.parent
@@ -148,6 +156,8 @@ def _export_batch(batch, destination):
     final_path = destination / (batch.id + ".zip")
     if final_path.exists():
         verified = verify_archive(final_path)
+        if include_files and verified['version'] != 2:
+            raise ValueError('Архив ссылок уже создан; он не перезаписывается. Используйте новую партию.')
         if verified["batch_id"] != batch.id or verified["record_count"] != info["record_count"]:
             raise ValueError("Existing archive belongs to another batch")
         expected = hashlib.sha256()
@@ -181,6 +191,10 @@ def _export_batch(batch, destination):
                         "created_at": info["created_at"], "record_count": info["record_count"],
                         "xml_sha256": digest.hexdigest(), "xml_bytes": total,
                         "attachments": "references-only"}
+            if include_files:
+                from .attachments import embed
+                manifest.update(embed(archive, batch, destination))
+                manifest['version'] = 2
             archive.writestr("manifest.json", canonical_json(manifest).encode("utf-8"))
         verified = verify_archive(temporary)
         with open(temporary, "rb+") as stream:

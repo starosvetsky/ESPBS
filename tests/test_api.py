@@ -45,6 +45,32 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_attachment_export_is_queued_and_visible_without_blocking_http(self):
+        from espbs.export_tasks import run
+        job = Job.create(self.temp.name, 1)
+        Batch(self.temp.name, job.id).add(record(1))
+        with job.db() as db:
+            db.execute("UPDATE job SET state='COMPLETED'")
+        url = f'/api/jobs/{job.id}/archive'
+        with patch('espbs.export_tasks.subprocess.Popen') as popen:
+            code, value = self.request(url, 'POST', {'include_files': True})
+            self.assertEqual(code, 202)
+            self.assertEqual(value['task']['state'], 'QUEUED')
+            self.request(url, 'POST', {'include_files': True})
+            self.assertEqual(popen.call_count, 1)
+        _, job_info = self.request(f'/api/jobs/{job.id}')
+        self.assertEqual(job_info['archive']['task']['state'], 'QUEUED')
+        with self.assertRaises(HTTPError) as error:
+            self.request(url, 'POST', {})
+        self.assertEqual(error.exception.code, 400)
+        run(self.temp.name, job.id)
+        _, job_info = self.request(f'/api/jobs/{job.id}')
+        self.assertTrue(job_info['archive']['ready'])
+        self.assertEqual(job_info['archive']['attachments'], 'embedded-with-report')
+        self.assertEqual(job_info['archive']['attachment_summary']['unique_files'], 0)
+        with self.assertRaises(HTTPError):
+            self.request(url, 'POST', {'include_files': 'yes'})
+
     def test_inventory_includes_legacy_batches_search_and_cleanup(self):
         first, second = Batch.create(self.temp.name), Batch.create(self.temp.name)
         first.add({**record(1), 'name': 'Сетевой коммутатор <script>'})
