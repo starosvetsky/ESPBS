@@ -6,3 +6,6 @@ select{width:100%;min-width:0;background:#0e1917;color:var(--text);padding:12px;
 .archive{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:18px 0 24px;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.archive>div{display:grid;gap:5px}.archive span{font:10px Consolas,monospace;color:var(--green);letter-spacing:.08em}.archive strong{font-size:14px}.archive small{font-size:10px}.download{padding:11px 16px;border-radius:6px;background:var(--green);color:#102016;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
 @media(max-width:950px){.layout,.columns{grid-template-columns:1fr}.layout{overflow:visible}.layout aside{border-right:0;border-bottom:1px solid var(--line)}.detail-head{display:grid;gap:10px}}
 @media(max-width:600px){.archive{align-items:stretch;flex-direction:column}.archive button,.archive .download{text-align:center;width:100%}}
+#include-files-label{display:flex;align-items:flex-start;gap:8px;max-width:280px;line-height:1.5}
+#include-files-label[hidden]{display:none}
+#include-files{width:auto;flex:none;margin-top:3px}
