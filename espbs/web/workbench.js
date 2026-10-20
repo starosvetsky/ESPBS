@@ -17,11 +17,14 @@ render = function(job){
   originalRender(job);
   let box=$('#enrichment-controls');
   if(!box){box=document.createElement('div');box.id='enrichment-controls';box.className='archive';$('#detail').insertBefore(box,$('#detail').querySelector('.metrics'));}
-  const fingerprint=JSON.stringify([job.id,job.state,job.retention?.state,job.child_id,job.enrichment_counts]);
+  const fingerprint=JSON.stringify([job.id,job.state,job.retention?.state,job.child_id,job.enrichment_counts,job.coverage]);
   if(box.dataset.state===fingerprint)return;
   box.dataset.state=fingerprint;
   box.replaceChildren();
   const label=document.createElement('span');label.textContent=job.source==='enrichment'?'Обогащение по брендам · исходная партия '+job.parent_id:'Сбор: '+(job.start_url || 'Eltex');box.append(label);
+  const coverage=document.createElement('small');const c=job.coverage;
+  coverage.textContent=c?.measured?`Заполненность ${c.measured} карточек: фото ${c.images||0}, документы ${c.documents||0}, характеристики ${c.attributes||0}, описание ${c.description||0}. Завершение задания не означает полноту карточек.`:'Заполненность этой партии не измерялась; завершение задания не означает полноту карточек.';
+  box.append(coverage);
   const button=document.createElement('button');button.textContent='Дополнить данными производителей';button.disabled=job.state!=='COMPLETED'||['CLEANING','CLEANED'].includes(job.retention?.state);
   button.onclick=async()=>{button.disabled=true;try{const child=await post(`api/jobs/${job.id}/enrich`,{});await select(child.id);}catch(error){alert(error.message);button.disabled=false;}};box.append(button);
   if(job.child_id){const child=document.createElement('button');child.textContent='Открыть обогащённую партию';child.onclick=()=>select(job.child_id);box.append(child);}

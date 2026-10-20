@@ -229,12 +229,17 @@ class Adapter:
         issues = [label for value, label in [(brand, 'Нет бренда'), (mpn, 'Нет точного MPN')] if not value]
         if raw.get('_recognition') == 'html-evidence':
             issues.append('Поля определены по структуре HTML; требуется проверка')
+        from .materials import documents, scope
+        from .recognition import pairs
+        if not attributes:
+            for label, val in pairs(scope(html)):
+                attributes.setdefault(label, []).append(val)
         # Store-side images are deliberately excluded, including nested JSON-LD.
         return {'source': urlsplit(url).hostname, 'source_url': public_url(url), 'external_id': public_url(url),
                 'name': name, 'manufacturer': brand, 'mpn': mpn,
                 'sku': str(raw.get('sku') or ''),
                 'description': str(field('description', raw.get('description','')) or ''),
-                'attributes': attributes, 'documents': [], 'images': [],
+                'attributes': attributes, 'documents': documents(html, url), 'images': [],
                 'offer': {'price_text': str(field('price', offers.get('price',''))),
                           'currency': str(offers.get('priceCurrency','')),
                           'availability': str(field('availability', offers.get('availability',''))),

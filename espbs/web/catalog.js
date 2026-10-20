@@ -19,6 +19,7 @@ function productPreview(product) {
   const img = node.querySelector('img');
   if (img) img.onerror = () => { const text=document.createElement('div');text.className='no-photo';text.textContent='Фото временно недоступно';img.replaceWith(text); };
   const details = node.querySelector('details');
+  if(product.coverage?.missing?.length){const p=document.createElement('p');const labels={images:'фото',documents:'документы',attributes:'характеристики',description:'описание'};p.textContent='Не собрано: '+product.coverage.missing.map(k=>labels[k]||k).join(', ');details.prepend(p);}
   for (const [title,url] of [['Магазин / источник',product.source_url],['Официальная карточка',product.enrichment?.source_url],...(product.documents || []).map(doc=>[doc.name || 'Документ',doc.url])]) {
     const href=safeLink(url); if(!href)continue;
     const a=document.createElement('a');a.href=href;a.target='_blank';a.rel='noopener noreferrer';a.textContent=title;details.append(a);

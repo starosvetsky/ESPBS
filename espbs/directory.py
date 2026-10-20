@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote, urljoin, urlsplit
+from urllib.parse import quote, urljoin, urlsplit, unquote
 
 from bs4 import BeautifulSoup
 
@@ -25,6 +25,14 @@ def key(value):
     return value.strip().casefold()
 
 
+def model_code(value):
+    """Remove a redundant parenthesized spelling, never a model suffix."""
+    match = re.fullmatch(r'(.+?)\s*\(([^()]+)\)', value.strip())
+    if match and re.sub(r'\W', '', match[1]).casefold() == re.sub(r'\W', '', match[2]).casefold():
+        return match[1].strip()
+    return value.strip()
+
+
 class Directory:
     def __init__(self, root):
         self.root = Path(root)
@@ -39,6 +47,10 @@ class Directory:
             ''')
             seed = {'brand': 'Eltex', 'home_url': 'https://eltex.ru/', 'template': '', 'selectors': {}}
             db.execute('INSERT OR IGNORE INTO manufacturers VALUES (?,?)', ('eltex', canonical_json(seed)))
+            from .photos import OFFICIAL_HOSTS
+            for host, brand in OFFICIAL_HOSTS.items():
+                db.execute('INSERT OR IGNORE INTO manufacturers VALUES (?,?)',
+                           (key(brand), canonical_json({'brand': brand, 'home_url': 'https://' + host + '/', 'template': '', 'selectors': {}})))
 
     @contextmanager
     def db(self):
@@ -87,6 +99,11 @@ class Directory:
         with self.db() as db:
             db.execute('INSERT OR REPLACE INTO manufacturers VALUES (?,?)', (brand, canonical_json(result)))
         return result
+
+    def source_brand(self, url):
+        host = urlsplit(url).hostname
+        matches = [m['brand'] for m in self.manufacturers() if urlsplit(m['home_url']).hostname == host]
+        return matches[0] if len(matches) == 1 else None
 
     def save_mapping(self, value):
         brand, mpn = key(value.get('brand')), key(value.get('mpn'))
@@ -205,8 +222,9 @@ class Enricher:
                 if len(links) > 100000:
                     raise ValueError('Карта официального сайта содержит более 100 000 адресов')
             self.sitemaps[origin] = links
-        pattern = re.compile(r'(?<![a-z0-9])' + re.escape(mpn.casefold()) + r'(?![a-z0-9])')
-        candidates = sorted(u for u in self.sitemaps[origin] if pattern.search(urlsplit(u).path.casefold()))
+        pieces = re.split(r'[-\s_]+', model_code(mpn).casefold())
+        pattern = re.compile(r'(?<![a-z0-9а-я])' + r'[-_]*'.join(re.escape(p) for p in pieces) + r'(?![a-z0-9а-я])')
+        candidates = sorted(u for u in self.sitemaps[origin] if pattern.search(unquote(urlsplit(u).path).casefold()))
         # Ambiguous variants are never selected arbitrarily.
         return candidates[0] if len(candidates) == 1 else None
 
@@ -227,13 +245,44 @@ class Enricher:
         original.pop('original_record', None)
         result = copy.deepcopy(original)
         result['original_record'] = original
-        from .photos import OFFICIAL_HOSTS
-        if OFFICIAL_HOSTS.get(urlsplit(original.get('source_url', '')).hostname, '').casefold() == original.get('manufacturer', '').casefold() and original.get('manufacturer'):
+        official_brand = self.directory.source_brand(original.get('source_url', ''))
+        if official_brand and (not original.get('manufacturer') or key(official_brand) == key(original['manufacturer'])):
+            result['manufacturer'] = original.get('manufacturer') or official_brand
+            result.setdefault('provenance', {})['official_source'] = original['source_url']
             result['enrichment'] = {'status': 'SOURCE_OFFICIAL', 'source_url': original['source_url'],
                                     'reason': 'Товар уже собран с официального сайта'}
+            if original.get('provenance', {}).get('materials_version') != 2:
+                try:
+                    url = original['source_url']
+                    html = self.client(url).get(url)
+                    fresh = eltex.product(html, url) if urlsplit(url).hostname == 'eltex.ru' else Adapter().product(html, url)
+                    if fresh.get('manufacturer') and key(fresh['manufacturer']) != key(official_brand):
+                        raise ValueError('Бренд обновлённой карточки не совпадает с официальным источником')
+                    if original.get('mpn') and fresh.get('mpn') and key(original['mpn']) != key(fresh['mpn']):
+                        raise ValueError('MPN обновлённой карточки изменился')
+                    for field in ('description', 'attributes', 'documents'):
+                        if fresh.get(field):
+                            if field == 'attributes':
+                                result[field] = {**result.get(field, {}), **fresh[field]}
+                            elif field == 'documents':
+                                docs = {d['url']: d for d in result.get(field, []) if d.get('url')}
+                                docs.update({d['url']: d for d in fresh[field] if d.get('url')})
+                                result[field] = list(docs.values())
+                            else:
+                                result[field] = fresh[field]
+                    from .photos import extract
+                    result['images'] = extract(html, url) or result.get('images', [])
+                    result['provenance']['materials_version'] = 2
+                    result['provenance']['refreshed_at'] = utc_now()
+                except (eltex.Stopped, SourceBlocked):
+                    raise
+                except Exception as error:
+                    result['enrichment'] = {'status': 'ERROR', 'reason': str(error), 'source_url': original['source_url']}
+                    result['quality'] = {'status': 'REVIEW', 'issues': [str(error)]}
             return result
         result['images'] = []
         brand, mpn = original.get('manufacturer','').strip(), original.get('mpn','').strip()
+        mpn = model_code(mpn)
         def fail(status, reason):
             result['enrichment'] = {'status': status, 'reason': reason}
             result['quality'] = {'status': 'REVIEW', 'issues': [reason],
@@ -260,7 +309,7 @@ class Enricher:
                 return fail('NOT_FOUND', 'Однозначная официальная карточка не найдена для ' + brand + ' ' + mpn)
         # One cache entry per identity; configuration changes invalidate it.
         identity = canonical_json([key(brand), key(mpn)])
-        revision = hashlib.sha256(canonical_json([manufacturer, url, method]).encode()).hexdigest()
+        revision = hashlib.sha256(canonical_json([manufacturer, url, method, 'materials-v2']).encode()).hexdigest()
         cached = self.directory.cached(identity)
         try:
             if cached and cached.get('revision') == revision:
@@ -274,32 +323,38 @@ class Enricher:
             else:
                 html = self.client(url).get(url)
                 official = Adapter(manufacturer.get('selectors')).product(html, url)
+                if urlsplit(url).hostname == 'eltex.ru':
+                    official = eltex.product(html, url)
+                    if (official.get('manufacturer', '').casefold() == key(brand) and
+                            re.search(r'(?<![A-Za-z0-9])' + re.escape(mpn) + r'$', official.get('name',''), re.I)):
+                        official['mpn'] = official.get('mpn') or mpn
+                        official.setdefault('provenance', {})['identity_method'] = 'exact_official_model_heading'
                 if not official.get('manufacturer') or not official.get('mpn'):
                     return fail('UNVERIFIED', 'Официальная страница найдена, но не содержит явного бренда и MPN: ' + url)
                 if key(official.get('manufacturer','')) != key(brand) or key(official.get('mpn','')) != key(mpn):
                     return fail('MISMATCH', 'Бренд или MPN официальной карточки не совпадает')
-                raw = objects(BeautifulSoup(html, 'html.parser'))
-                images = raw[0].get('image', []) if len(raw) == 1 else []
-                if not isinstance(images, list):
-                    images = [images]
-                official['images'] = []
-                for image in images:
-                    if isinstance(image, dict):
-                        image = image.get('url','')
-                    if not isinstance(image, str) or not image:
-                        continue
-                    candidate = public_url(urljoin(url, image))
-                    if urlsplit(candidate).netloc == urlsplit(url).netloc and candidate not in official['images']:
-                        official['images'].append(candidate)
+                from .photos import extract
+                official['images'] = extract(html, url)
             if not cached or cached.get('revision') != revision:
                 official.setdefault('provenance', {}).setdefault('collected_at', utc_now())
                 self.directory.cache(identity, {'revision': revision, 'product': official})
             result['official'] = official
+            replaced = []
             for field in ('description', 'attributes', 'documents', 'images'):
-                result[field] = official.get(field, [] if field in ('documents','images') else {} if field == 'attributes' else '')
+                if official.get(field):
+                    if field == 'attributes':
+                        result[field] = {**result.get(field, {}), **official[field]}
+                    elif field == 'documents':
+                        merged = {d['url']: d for d in result.get(field, []) if d.get('url')}
+                        merged.update({d['url']: d for d in official[field] if d.get('url')})
+                        result[field] = list(merged.values())
+                    else:
+                        result[field] = official[field]
+                    replaced.append(field)
             result.setdefault('provenance', {})['official_fields'] = {
-                field: {'source_url': url, 'collected_at': official.get('provenance',{}).get('collected_at', utc_now())}
-                for field in ('description','attributes','documents','images')}
+                field: {'source_url': url, 'collected_at': official.get('provenance',{}).get('collected_at', utc_now()),
+                        'merge': 'source_plus_official' if field in ('attributes','documents') else 'official'}
+                for field in replaced}
             result['enrichment'] = {'status': 'MATCHED', 'method': method, 'source_url': url,
                                      'cached': bool(cached and cached.get('revision') == revision)}
             result['quality'] = {'status': 'GOOD', 'issues': [], 'attribute_count': len(result['attributes'])}

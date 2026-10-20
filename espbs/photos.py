@@ -3,7 +3,7 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 from .universal import objects, public_url
 
-OFFICIAL_HOSTS = {'eltex.ru': 'Eltex', 'dlink.ru': 'D-Link', 'www.qtech.ru': 'QTECH'}
+OFFICIAL_HOSTS = {'eltex.ru': 'Eltex', 'dlink.ru': 'D-Link', 'www.qtech.ru': 'QTECH', 'ostec.ru': 'OSTEC'}
 IMAGE_HOSTS = {'shop.nag.ru': {'cdn.nag.shop'}}
 
 
@@ -44,6 +44,10 @@ def extract(html, url):
     if not values:
         values = [n.get('content') or n.get('src') or n.get('href') for n in
                   soup.select('[itemprop="image"], meta[property="og:image"]')]
+    if not any(values):
+        from .materials import image_candidates
+        heading = soup.select_one('h1')
+        values = image_candidates(html, heading.get_text(' ', strip=True) if heading else '')
     if urlsplit(url).hostname == 'dlink.ru':
         values = [n.get('src') for n in soup.select('img[src*="/up/prod/"]')]
     if urlsplit(url).hostname == 'shop.nag.ru':
@@ -55,9 +59,11 @@ def select(record, policy, original=None):
     original = original or record.get('original_record', record)
     source = original.get('source_url', '')
     source_images = clean(original.get('images', []), source)
+    if record.get('enrichment', {}).get('status') == 'SOURCE_OFFICIAL':
+        source_images = clean(record.get('images', []), source)
     official_url = record.get('enrichment', {}).get('source_url', '')
     official = clean(record.get('images', []), official_url) if record.get('enrichment', {}).get('status') == 'MATCHED' else []
-    if urlsplit(source).hostname in OFFICIAL_HOSTS:
+    if urlsplit(source).hostname in OFFICIAL_HOSTS or record.get('provenance', {}).get('official_source') == source:
         official, official_url = source_images, source
     if policy == 'store' or policy == 'fallback' and source_images:
         record['images'], chosen = source_images, source

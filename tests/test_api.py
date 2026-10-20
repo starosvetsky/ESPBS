@@ -176,7 +176,7 @@ class APITests(unittest.TestCase):
     @patch('espbs.api.launch_worker')
     def test_directory_and_separate_enrichment_api(self, launch):
         _, directory = self.request('/api/directory')
-        self.assertEqual(directory['manufacturers'][0]['brand'], 'Eltex')
+        self.assertEqual({m['brand'] for m in directory['manufacturers']}, {'Eltex', 'D-Link', 'QTECH', 'OSTEC'})
         self.request('/api/manufacturers', 'POST', {'brand':'Synthetic','home_url':'https://maker.example/'})
         self.request('/api/mappings', 'POST', {'brand':'Synthetic','mpn':'S-1','url':'https://maker.example/s1'})
         _, directory = self.request('/api/directory')

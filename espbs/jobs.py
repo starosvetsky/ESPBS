@@ -185,6 +185,7 @@ class Job:
             progress = counters(db)
             result.update(id=self.id, batch_id=self.id)
             if progress is not None:
+                result['coverage'] = {k[9:]: v for k, v in progress.items() if k.startswith('coverage:')}
                 result.update(discovered=progress.get('discovered',0), completed=progress.get('completed',0),
                               quality={k[8:]:v for k,v in progress.items() if k.startswith('quality:')},
                               enrichment_counts={k[11:]:v for k,v in progress.items() if k.startswith('enrichment:')})
@@ -283,6 +284,8 @@ class Job:
                 require_space(self.root, 256 * MIB)
                 from .catalog import Catalog
                 catalog = Catalog(self.root)
+                from .directory import Directory
+                source_directory = Directory(self.root)
                 if enricher:
                     # Store only configuration fields when checkpointing inputs.
                     with self.db() as db:
@@ -357,9 +360,18 @@ class Job:
                             final_url = getattr(client, 'last_url', None)
                             final_url = final_url if isinstance(final_url, str) else item[0]
                             record = adapter.product(html, final_url)
+                            record.setdefault('provenance', {})['materials_version'] = 2
+                            official_brand = source_directory.source_brand(final_url)
+                            source_official = bool(official_brand and (not record.get('manufacturer') or
+                                                   official_brand.casefold() == record['manufacturer'].casefold()))
+                            if source_official:
+                                record['manufacturer'] = record.get('manufacturer') or official_brand
+                                record['quality']['issues'] = [issue for issue in record['quality']['issues'] if issue != 'Нет бренда']
+                                record.setdefault('provenance', {})['official_source'] = final_url
+                                record['enrichment'] = {'status': 'SOURCE_OFFICIAL', 'source_url': final_url}
                             from .photos import extract, OFFICIAL_HOSTS
                             from urllib.parse import urlsplit
-                            if config.get('photo_policy') in ('store', 'fallback') or urlsplit(final_url).hostname in OFFICIAL_HOSTS:
+                            if config.get('photo_policy') in ('store', 'fallback') or source_official:
                                 record['images'] = extract(html, final_url)
                                 record.setdefault('provenance', {})['images'] = {'source_url': final_url, 'policy': config.get('photo_policy', 'official')}
                                 record['photo_policy'] = config.get('photo_policy', 'official')
@@ -372,7 +384,7 @@ class Job:
                             self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
                         elif config['source'] == 'eltex':
                             record['images'] = official_images(record)
-                        elif not enricher:
+                        elif not enricher and record.get('enrichment', {}).get('status') != 'SOURCE_OFFICIAL':
                             record['quality']['issues'].append('Официальные данные проверяются отдельным заданием' if config.get('auto_enrich') else 'Обогащение отключено')
                         if config.get('photo_policy') == 'none':
                             def remove_images(value):
@@ -387,6 +399,10 @@ class Job:
                             remove_images(record)
                             record['images'] = []
                         require_space(self.root, 256 * MIB)
+                        from .materials import coverage
+                        record['coverage'] = coverage(record)
+                        if record['coverage']['missing']:
+                            record['quality']['status'] = 'REVIEW'
                         outcome = batch.add(record)
                         catalog.add(record, self.id)
                         # A crash here replays this URL; Batch.add prevents duplicate rows.
@@ -395,6 +411,9 @@ class Job:
                                        (outcome, record['quality']['status'], item[0]))
                             increment(db, 'completed')
                             increment(db, 'quality:' + record['quality']['status'])
+                            increment(db, 'coverage:measured')
+                            for field, present in record['coverage']['fields'].items():
+                                increment(db, 'coverage:' + field, int(present))
                             if 'enrichment' in record:
                                 increment(db, 'enrichment:' + record['enrichment']['status'])
                         self.event('saved', {'url': item[0], 'outcome': outcome,
@@ -425,6 +444,10 @@ class Job:
                 db.execute('UPDATE job SET state=?,error=?,updated_at=?', (state, error, utc_now()))
             self.event(state.lower(), {'error': error}, callback)
         if state == 'COMPLETED' and config.get('auto_enrich'):
+            final = self.info()
+            if final['completed'] and final['enrichment_counts'].get('SOURCE_OFFICIAL') == final['completed']:
+                self.event('enrichment_unneeded', {'reason': 'Все карточки уже получены с официального источника'}, callback)
+                return self.info()
             try:
                 child = self.create_enrichment(self)
                 config['child_id'] = child.id
