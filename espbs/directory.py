@@ -326,7 +326,7 @@ class Enricher:
                 if urlsplit(url).hostname == 'eltex.ru':
                     official = eltex.product(html, url)
                     if (official.get('manufacturer', '').casefold() == key(brand) and
-                            re.search(r'(?<![A-Za-z0-9])' + re.escape(mpn) + r'$', official.get('name',''), re.I)):
+                            re.search(r'(?:^|\s)' + re.escape(mpn) + r'$', official.get('name',''), re.I)):
                         official['mpn'] = official.get('mpn') or mpn
                         official.setdefault('provenance', {})['identity_method'] = 'exact_official_model_heading'
                 if not official.get('manufacturer') or not official.get('mpn'):

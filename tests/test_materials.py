@@ -72,3 +72,12 @@ class MaterialsTests(unittest.TestCase):
         self.assertEqual(model_code('MES2428_DC'), 'MES2428_DC')
         self.assertEqual(model_code('X (Y)'), 'X (Y)')
         self.assertEqual(len(coverage({})['missing']), 4)
+
+    def test_model_suffix_is_not_a_complete_official_model(self):
+        with tempfile.TemporaryDirectory() as root:
+            Directory(root).save_mapping({'brand':'Eltex','mpn':'DC','url':'https://eltex.ru/product/example/'})
+            original = {'source_url':'https://shop.example/p','manufacturer':'Eltex','mpn':'DC','attributes':{}}
+            enricher = Enricher(root); client = Mock()
+            client.get.return_value = '<script type="application/ld+json">'+json.dumps({'@type':'Product','name':'Коммутатор доступа MES2428_DC','brand':{'name':'Eltex'}})+'</script>'
+            enricher.clients['eltex.ru'] = client
+            self.assertEqual(enricher.enrich(original)['enrichment']['status'], 'UNVERIFIED')
