@@ -57,6 +57,15 @@ def references(record):
             yield kind, url, origin, sources
 
 
+def permitted_host(origin, target, official_hosts):
+    if origin == target:
+        return True
+    if origin not in official_hosts:
+        return False
+    domain = origin[4:] if origin.startswith('www.') else origin
+    return target == domain or target.endswith('.' + domain)
+
+
 def embed(archive, batch, destination):
     """Stream an index; keep at most MAX_ATTEMPTS results in memory.
 
@@ -64,6 +73,8 @@ def embed(archive, batch, destination):
     explicit receipt/cleanup workflow remains valid.
     """
     root = batch.path.parent.parent
+    from .directory import Directory
+    official_hosts = {urlsplit(m['home_url']).netloc for m in Directory(root).manufacturers()}
     deadline = time.monotonic() + MAX_SECONDS
     cache, blobs = {}, set()
     stats = {'embedded': 0, 'skipped': 0, 'failed': 0, 'unique_files': 0,
@@ -79,7 +90,7 @@ def embed(archive, batch, destination):
                 try:
                     url = public_url(raw_url)
                     origin = public_url(origin)
-                    if origin not in sources or urlsplit(url).netloc != urlsplit(origin).netloc:
+                    if origin not in sources or not permitted_host(urlsplit(origin).netloc, urlsplit(url).netloc, official_hosts):
                         raise ValueError('Внешний файловый домен требует отдельной проверки')
                     if kind == 'images' and (forbidden(url) or forbidden(origin)):
                         raise ValueError('Изображения Olnisa запрещены')
@@ -93,7 +104,9 @@ def embed(archive, batch, destination):
                         result = {'status': 'skipped', 'reason': 'Достигнут лимит партии по файлам, объёму или времени'}
                     else:
                         stats['attempted_urls'] += 1
-                        client = Client(origin, root=root, stopped=lambda: time.monotonic() >= deadline)
+                        allowed_origins = {'https://' + urlsplit(origin).netloc, 'https://' + urlsplit(url).netloc}
+                        client = Client(url, root=root, stopped=lambda: time.monotonic() >= deadline,
+                                        redirect_origins=allowed_origins)
                         try:
                             limit = min(MAX_FILE, MAX_TOTAL - stats['file_bytes'])
                             require_space(destination, limit + MIB)

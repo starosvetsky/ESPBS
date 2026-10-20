@@ -61,10 +61,12 @@ class Redirect(Exception):
 
 
 class Client:
-    def __init__(self, url, stopped=lambda: False, root='data'):
+    def __init__(self, url, stopped=lambda: False, root='data', redirect_origins=()):
         from .traffic import Traffic
         self.traffic = Traffic(root)
         self.origin = 'https://' + urlsplit(public_url(url)).netloc
+        self.root = root
+        self.redirect_origins = set(redirect_origins) | {self.origin}
         self.stopped = stopped
         self.rules = None
         self.last_request = 0
@@ -93,6 +95,18 @@ class Client:
         except Redirect as redirect:
             if _redirects >= 5:
                 raise ValueError('Слишком много перенаправлений: ' + url)
+            target_origin = 'https://' + urlsplit(redirect.url).netloc
+            if target_origin != self.origin:
+                if target_origin not in self.redirect_origins:
+                    raise ValueError('Непроверенный домен перенаправления')
+                # Independent robots policy on each explicitly permitted origin.
+                child = Client(redirect.url, self.stopped, self.root, self.redirect_origins)
+                try:
+                    result = child.get(redirect.url, _redirects + 1, sink=sink, max_bytes=max_bytes)
+                    self.last_url = child.last_url
+                    return result
+                finally:
+                    child.close()
             return self.get(redirect.url, _redirects + 1, sink=sink, max_bytes=max_bytes)
 
     def _request(self, url, robots=False, **kwargs):
@@ -125,7 +139,7 @@ class Client:
                 location = response.getheader('Location')
                 if isinstance(location, str) and location:
                     target = public_url(urljoin(url, location))
-                    if 'https://' + urlsplit(target).netloc != self.origin:
+                    if 'https://' + urlsplit(target).netloc not in self.redirect_origins:
                         raise ValueError('Перенаправление на другой сайт требует проверки: ' + target)
                     raise Redirect(target)
             if response.status != 200:

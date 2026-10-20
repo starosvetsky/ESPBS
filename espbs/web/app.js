@@ -29,7 +29,7 @@ function renderArchive(job){
  $('#archive-status').textContent=ready?'ZIP/XML готов к скачиванию':busy?'Скачиваются материалы и собирается архив':task.error||'Архив ещё не подготовлен';
  const summary=job.archive?.attachment_summary;
  const files=summary?` · файлов ${summary.unique_files} · ссылок с файлами ${summary.embedded}, пропущено ${summary.skipped}, ошибок ${summary.failed}`:' · вложения только ссылками';
- $('#archive-meta').textContent=ready?`${job.archive.record_count} товаров · ${formatBytes(job.archive.size)}${files} · SHA-256 ${job.archive.sha256.slice(0,12)}…`:busy?'Можно закрыть страницу. Подготовка продолжится на сервере.':'Исходные записи сохраняются. Готовый архив не перезаписывается. Файловые домены вне сайта-источника не скачиваются.';
+ $('#archive-meta').textContent=ready?`${job.archive.record_count} товаров · ${formatBytes(job.archive.size)}${files} · SHA-256 ${job.archive.sha256.slice(0,12)}…`:busy?'Можно закрыть страницу. Подготовка продолжится на сервере.':'Исходные записи сохраняются. Готовый архив не перезаписывается. Разрешены сайт-источник и поддомены зарегистрированного производителя.';
 }
 async function loadDetail(){
  if(!selected||detailBusy)return;detailBusy=true;const id=selected;const cursor=productCursors[productCursors.length-1];

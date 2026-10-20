@@ -164,6 +164,36 @@ class AttachmentsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'пределы'):
             client.get('https://other.example/a.pdf', sink=lambda c: None)
 
+    def test_registered_manufacturer_subdomains_not_lookalikes(self):
+        from espbs.directory import Directory
+        from espbs.attachments import permitted_host
+        Directory(self.root).save_manufacturer({'brand': 'Synthetic', 'home_url': 'https://fixture.example/'})
+        self.add(docs=[{'url': 'https://ftp.fixture.example/a.pdf'},
+                       {'url': 'https://fixture.example.evil.test/a.pdf'}])
+        _, report, entries = self.build()
+        self.assertEqual(report['attachment_summary']['embedded'], 1)
+        self.assertEqual(entries[1]['status'], 'skipped')
+        self.assertFalse(permitted_host('shop.example', 'cdn.shop.example', {'fixture.example'}))
+
+    def test_approved_redirect_checks_destination_robots(self):
+        from espbs.universal import Redirect
+        client = Client('https://www.fixture.example/', root=self.root,
+                        redirect_origins={'https://fixture.example'})
+        calls = []
+        def request(instance, url, *args, **kwargs):
+            calls.append(url)
+            if url == 'https://www.fixture.example/robots.txt':
+                return 'User-agent: *\nAllow: /'
+            if url == 'https://fixture.example/robots.txt':
+                return 'User-agent: *\nDisallow: /'
+            raise Redirect('https://fixture.example/a.pdf')
+        with patch.object(Client, '_request', autospec=True, side_effect=request):
+            with self.assertRaisesRegex(ValueError, 'robots'):
+                client.get('https://www.fixture.example/a.pdf', sink=lambda c: None)
+        self.assertEqual(calls, ['https://www.fixture.example/robots.txt',
+                                'https://www.fixture.example/a.pdf',
+                                'https://fixture.example/robots.txt'])
+
     def test_binary_client_size_and_truncation(self):
         client = Client('https://fixture.example/', root=self.root)
         client.rules = Robots()
