@@ -1,5 +1,5 @@
 let sourceRegistry = [];
-const sourceLabel = id => id === 'enrichment' ? 'Обогащение по брендам' : id === 'generic' ? 'Сбор по ссылке' : sourceRegistry.find(x => x.id === id)?.name || id || 'Eltex';
+const sourceLabel = id => id === 'archive-part' ? 'Архивная часть' : id === 'enrichment' ? 'Обогащение по брендам' : id === 'generic' ? 'Сбор по ссылке' : sourceRegistry.find(x => x.id === id)?.name || id || 'Eltex';
 async function loadSources() {
   try {sourceRegistry=(await api('api/sources')).sources;await loadStorage();await loadJobs();}
   catch(error){$('#source-help').textContent=error.message;}

@@ -35,7 +35,9 @@ def archive_info(root, job_id):
 
 
 def job_info(root, job):
-    return {**job.reconcile(), 'archive': archive_info(root, job.id), 'retention': receipt(job)}
+    from .partitions import summary
+    return {**job.reconcile(), 'archive': archive_info(root, job.id), 'retention': receipt(job),
+            'archive_parts': summary(job)}
 
 
 def jobs(root):
@@ -227,8 +229,12 @@ class Handler(BaseHTTPRequestHandler):
                                  payload.get('auto_enrich', True), payload.get('photo_policy', 'official'))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
-            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich'):
+            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich', 'archive-part'):
                 raise FileNotFoundError('Route not found')
+            if parts[3] == 'archive-part':
+                from .partitions import create_next
+                child = create_next(job, self.body().get('after', ''))
+                return self.send_json(201, job_info(self.server.root, child))
             if parts[3] == 'enrich':
                 child = Job.create_enrichment(job)
                 launch_worker(self.server.root, child.id)

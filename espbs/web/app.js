@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s);let selected=null,eventCursor=0,timer,detailBusy=false,productCursors=[''];
 const api=async(path,options={})=>{const response=await fetch(path,{headers:{'Content-Type':'application/json'},...options});const data=await response.json();if(!response.ok)throw new Error(data.error||'Ошибка API');return data};
-const stateName={PAUSED_DISK:'Мало места',READY:'Готово',RUNNING:'Выполняется',STOPPED:'Остановлено',COMPLETED:'Завершено',FAILED:'Ошибка'};
+const stateName={PREPARING:'Подготовка части',PAUSED_DISK:'Мало места',READY:'Готово',RUNNING:'Выполняется',STOPPED:'Остановлено',COMPLETED:'Завершено',FAILED:'Ошибка'};
 function connection(ok){const el=$('#connection');el.textContent=ok?'API подключён':'Нет соединения';el.className='badge '+(ok?'online':'offline')}
 function jobButton(job){const b=document.createElement('button');b.className='job'+(selected===job.id?' active':'');b.innerHTML=`<span><b>${stateName[job.state]||job.state}</b><i>${job.completed}/${job.target ?? 'весь каталог'}</i></span><small>${job.id.slice(0,8)} · ${escapeHtml(sourceLabel(job.source))}</small>`;b.onclick=()=>select(job.id);return b}
 async function loadJobs(){try{const data=await api('api/jobs');connection(true);const box=$('#jobs');box.innerHTML='';data.jobs.forEach(j=>box.append(jobButton(j)));if(!data.jobs.length)box.innerHTML='<p class="empty">Заданий пока нет</p>';if(selected){const found=data.jobs.find(j=>j.id===selected);if(found)render(found)}}catch(e){connection(false)}}

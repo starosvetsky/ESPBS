@@ -45,6 +45,26 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_archive_part_preserves_parent_and_can_be_exported(self):
+        job = Job.create(self.temp.name, 1)
+        batch = Batch(self.temp.name, job.id)
+        batch.add(record(1))
+        with job.db() as db:
+            db.execute("UPDATE job SET state='COMPLETED'")
+        route = f'/api/jobs/{job.id}/archive-part'
+        code, child = self.request(route, 'POST', {'after': ''})
+        self.assertEqual(code, 201)
+        self.assertEqual(child['source'], 'archive-part')
+        self.assertEqual(child['completed'], 1)
+        _, repeated = self.request(route, 'POST', {'after': ''})
+        self.assertEqual(child['id'], repeated['id'])
+        _, parent = self.request(f'/api/jobs/{job.id}')
+        self.assertTrue(parent['archive_parts']['done'])
+        self.assertEqual(batch.info()['record_count'], 1)
+        code, archive = self.request(f"/api/jobs/{child['id']}/archive", 'POST', {})
+        self.assertEqual(code, 201)
+        self.assertTrue(archive['ready'])
+
     def test_attachment_export_is_queued_and_visible_without_blocking_http(self):
         from espbs.export_tasks import run
         job = Job.create(self.temp.name, 1)

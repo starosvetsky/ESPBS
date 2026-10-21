@@ -22,6 +22,10 @@ python -m espbs --data-dir data serve
 - `POST /api/jobs/{id}/stop` и `/resume` — запросить остановку или продолжить.
 - `GET /api/jobs/{id}/events?after=0&limit=100` — журнал с числовым курсором.
 - `GET /api/jobs/{id}/products?after=&limit=50` — сохранённые товары с курсором.
+- `POST /api/jobs/{id}/archive-part` с `{"after":""}` — создать первую
+  небольшую архивную часть без повторного сбора. Для следующей взять
+  `archive_parts.next_cursor` из GET родителя. Повтор курсора возвращает ту же
+  часть. Подробности и ограничения: [PARTITIONS.md](PARTITIONS.md).
 - `POST /api/jobs/{id}/archive` — подготовить проверенный ZIP/XML завершённой
   партии без скачивания вложений. Повторный запрос возвращает тот же архив.
 - Тот же POST с `{"include_files":true}` запускает фоновую подготовку v2
