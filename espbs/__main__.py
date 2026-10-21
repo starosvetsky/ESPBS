@@ -45,12 +45,22 @@ def main():
     worker.add_argument('job_id')
     archive_worker = commands.add_parser('archive-worker', help=argparse.SUPPRESS)
     archive_worker.add_argument('batch_id')
+    queue_worker = commands.add_parser('archive-queue-worker', help=argparse.SUPPRESS)
+    queue_worker.add_argument('job_id')
     for name in ('resume', 'stop', 'run-status', 'events'):
         command = commands.add_parser(name)
         command.add_argument('job_id')
     args = parser.parse_args()
     try:
-        if args.command == 'archive-worker':
+        if args.command == 'archive-queue-worker':
+            from .archive_queue import run
+            requested = {'stop': False}
+            previous = signal.signal(signal.SIGTERM, lambda *_: requested.update(stop=True))
+            try:
+                result = run(args.data_dir, args.job_id, lambda: requested['stop'])
+            finally:
+                signal.signal(signal.SIGTERM, previous)
+        elif args.command == 'archive-worker':
             from .export_tasks import run
             result = run(args.data_dir, args.batch_id)
         elif args.command == 'catalog':

@@ -36,8 +36,9 @@ def archive_info(root, job_id):
 
 def job_info(root, job):
     from .partitions import summary
+    from .archive_queue import status as queue_status
     return {**job.reconcile(), 'archive': archive_info(root, job.id), 'retention': receipt(job),
-            'archive_parts': summary(job)}
+            'archive_parts': summary(job), 'archive_queue': queue_status(job)}
 
 
 def jobs(root):
@@ -229,8 +230,13 @@ class Handler(BaseHTTPRequestHandler):
                                  payload.get('auto_enrich', True), payload.get('photo_policy', 'official'))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
-            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich', 'archive-part'):
+            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich', 'archive-part', 'archive-queue-start', 'archive-queue-stop'):
                 raise FileNotFoundError('Route not found')
+            if parts[3] in ('archive-queue-start', 'archive-queue-stop'):
+                from .archive_queue import start, stop
+                self.body()
+                value = start(job) if parts[3] == 'archive-queue-start' else stop(job)
+                return self.send_json(202, value)
             if parts[3] == 'archive-part':
                 from .partitions import create_next
                 child = create_next(job, self.body().get('after', ''))

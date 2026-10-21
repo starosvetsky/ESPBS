@@ -15,6 +15,10 @@ python -m espbs --data-dir data serve
 
 ## Маршруты
 
+Очередь архивов: `POST /api/jobs/{id}/archive-queue-start` и
+`/archive-queue-stop`, состояние в `archive_queue` GET задания.
+Оба POST принимают `{}`. Семантика и ограничения: [ARCHIVE_QUEUE.md](ARCHIVE_QUEUE.md).
+
 - `GET /api/jobs` — список сохранённых заданий.
 - `POST /api/jobs` с `{"source":"eltex","limit":3}` — создать ограниченное
   задание и запустить отдельный worker-процесс.

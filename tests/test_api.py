@@ -45,6 +45,28 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_archive_queue_start_stop_and_status(self):
+        from espbs.archive_queue import run
+        job = Job.create(self.temp.name, 1)
+        Batch(self.temp.name, job.id).add(record(1))
+        with job.db() as db:
+            db.execute("UPDATE job SET state='COMPLETED'")
+        with patch('espbs.archive_queue.subprocess.Popen') as popen:
+            code, value = self.request(f'/api/jobs/{job.id}/archive-queue-start', 'POST', {})
+            self.assertEqual(code, 202)
+            self.assertEqual(value['state'], 'QUEUED')
+            self.request(f'/api/jobs/{job.id}/archive-queue-start', 'POST', {})
+            self.assertEqual(popen.call_count, 1)
+        _, value = self.request(f'/api/jobs/{job.id}/archive-queue-stop', 'POST', {})
+        self.assertEqual(value['stop'], 1)
+        self.assertEqual(run(self.temp.name, job.id)['state'], 'STOPPED')
+        with patch('espbs.archive_queue.subprocess.Popen'):
+            self.request(f'/api/jobs/{job.id}/archive-queue-start', 'POST', {})
+        run(self.temp.name, job.id)
+        _, value = self.request(f'/api/jobs/{job.id}')
+        self.assertEqual(value['archive_queue']['state'], 'COMPLETED')
+        self.assertEqual(value['archive_queue']['last_seq'], 1)
+
     def test_archive_part_preserves_parent_and_can_be_exported(self):
         job = Job.create(self.temp.name, 1)
         batch = Batch(self.temp.name, job.id)

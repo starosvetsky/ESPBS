@@ -17,7 +17,7 @@ render = function(job){
   originalRender(job);
   let box=$('#enrichment-controls');
   if(!box){box=document.createElement('div');box.id='enrichment-controls';box.className='archive';$('#detail').insertBefore(box,$('#detail').querySelector('.metrics'));}
-  const fingerprint=JSON.stringify([job.id,job.state,job.retention?.state,job.child_id,job.enrichment_counts,job.coverage,job.archive_parts]);
+  const fingerprint=JSON.stringify([job.id,job.state,job.retention?.state,job.child_id,job.enrichment_counts,job.coverage,job.archive_parts,job.archive_queue]);
   if(box.dataset.state===fingerprint)return;
   box.dataset.state=fingerprint;
   box.replaceChildren();
@@ -31,8 +31,15 @@ render = function(job){
     const parent=document.createElement('button');parent.textContent='К исходной партии и следующей части';parent.onclick=()=>select(job.parent_id);box.append(parent);
   }else{
     const parts=job.archive_parts||{};
+    const queue=job.archive_queue||{},active=['QUEUED','RUNNING'].includes(queue.state);
+    const queueNames={QUEUED:'Запускается',RUNNING:'Готовит архивы',WAITING_DOWNLOAD:'Ждёт скачивания и отдельной очистки частей',PAUSED_DISK:'Пауза: мало места',STOPPED:'Остановлена',FAILED:'Ошибка',REVIEW:'Нужна проверка отчёта',COMPLETED:'Очередь завершена'};
+    const queueInfo=document.createElement('small');queueInfo.textContent=`Очередь: ${queueNames[queue.state]||'не запущена'}. Обработано частей: ${queue.last_seq||0}; неполных: ${queue.incomplete_parts||0}. ${queue.error||''}`;box.append(queueInfo);
+    const queueStart=document.createElement('button');queueStart.textContent=queue.state==='REVIEW'?'Продолжить очередь после проверки отчёта':'Готовить части автоматически (до двух вперёд)';
+    queueStart.disabled=job.state!=='COMPLETED'||active||queue.state==='COMPLETED'||['CLEANING','CLEANED'].includes(job.retention?.state);
+    queueStart.onclick=async()=>{queueStart.disabled=true;try{await post(`api/jobs/${job.id}/archive-queue-start`,{});await loadDetail();}catch(error){alert(error.message);queueStart.disabled=false;}};box.append(queueStart);
+    if(active){const stopQueue=document.createElement('button');stopQueue.textContent=queue.stop?'Остановится после текущей части':'Остановить после текущей части';stopQueue.disabled=Boolean(queue.stop);stopQueue.onclick=async()=>{stopQueue.disabled=true;try{await post(`api/jobs/${job.id}/archive-queue-stop`,{});await loadDetail();}catch(error){alert(error.message);stopQueue.disabled=false;}};box.append(stopQueue);}
     const split=document.createElement('button');split.textContent=parts.done?'Все карточки распределены по частям':'Создать следующую архивную часть';
-    split.disabled=job.state!=='COMPLETED'||parts.done||['CLEANING','CLEANED'].includes(job.retention?.state);
+    split.disabled=job.state!=='COMPLETED'||parts.done||active||['CLEANING','CLEANED'].includes(job.retention?.state);
     split.onclick=async()=>{split.disabled=true;try{const child=await post(`api/jobs/${job.id}/archive-part`,{after:parts.next_cursor||''});await select(child.id);}catch(error){alert(error.message);split.disabled=false;}};box.append(split);
     const hint=document.createElement('small');hint.textContent=`Создано частей: ${parts.count||0}. До 25 карточек и примерно 40 ссылок на материалы в части. Без повторного парсинга; исходная партия сохраняется.`;box.append(hint);
     for(const part of parts.recent||[]){const open=document.createElement('button');open.textContent=`Часть ${part.seq}: ${part.record_count} карточек · ${part.ready?'готова к упаковке':'нужно повторить подготовку'}`;open.onclick=()=>select(part.child_id);box.append(open);}

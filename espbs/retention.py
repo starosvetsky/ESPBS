@@ -40,6 +40,9 @@ def cleanup(job, confirmation):
         raise ValueError('Type the full job ID to confirm cleanup')
     batch = Batch(job.root, job.id)
     with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(job.path.with_suffix('.lock')):
+        from .archive_queue import status as queue_status
+        if queue_status(job).get('state') in ('QUEUED', 'RUNNING'):
+            raise ValueError('Сначала остановите очередь архивов исходной партии')
         with job.db() as db:
             if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='dependents'").fetchone():
                 if db.execute('SELECT 1 FROM dependents WHERE ready=0 LIMIT 1').fetchone():
