@@ -23,7 +23,13 @@ python -m espbs --data-dir data serve
 - `GET /api/jobs/{id}/events?after=0&limit=100` — журнал с числовым курсором.
 - `GET /api/jobs/{id}/products?after=&limit=50` — сохранённые товары с курсором.
 - `POST /api/jobs/{id}/archive` — подготовить проверенный ZIP/XML завершённой
-  партии. Повторный запрос возвращает тот же архив.
+  партии без скачивания вложений. Повторный запрос возвращает тот же архив.
+- Тот же POST с `{"include_files":true}` запускает фоновую подготовку v2
+  и возвращает 202. Состояние — `archive.task.state` (QUEUED/RUNNING/FAILED)
+  в GET задания. После подготовки — `archive.ready`, `attachments` и
+  `attachment_summary`: уникальные файлы, ссылки embedded/skipped/failed.
+  Повтор во время работы не запускает второй процесс. Существующий ZIP
+  этим режимом не перезаписывается. Ограничения: [ATTACHMENTS.md](ATTACHMENTS.md).
 - `GET /api/jobs/{id}/archive` — скачать готовый ZIP. Скачивание не удаляет
   исходные записи и не подтверждает освобождение места.
 
