@@ -15,6 +15,13 @@ python -m espbs --data-dir data serve
 
 ## Маршруты
 
+`GET /api/storage`: `free_bytes`, `can_collect` и резерв читаются при каждом
+запросе. Только `sizes` кешируется в процессе API на 30 секунд; возраст
+сводки — `sizes_age_seconds`, срок обновления — `sizes_refresh_seconds`.
+В `sizes` также входят `catalog`, `traffic`, `job-index`. Сводка не является
+атомарным снимком файловой системы; первый запрос после истечения кеша
+выполняет обход файлов. Защита записи `require_space` кеш не использует.
+
 Очередь архивов: `POST /api/jobs/{id}/archive-queue-start` и
 `/archive-queue-stop`, состояние в `archive_queue` GET задания.
 Оба POST принимают `{}`. Семантика и ограничения: [ARCHIVE_QUEUE.md](ARCHIVE_QUEUE.md).

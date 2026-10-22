@@ -19,6 +19,59 @@ class DiskTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = self.temp.name
 
+    def test_cached_totals_do_not_cache_headroom(self):
+        with patch('espbs.disk._scan_sizes', return_value={'batches': 100}) as scan:
+            with patch('espbs.disk.shutil.disk_usage', return_value=Usage(3000*MIB, 0, 2000*MIB)):
+                first = status(self.root)
+            with patch('espbs.disk.shutil.disk_usage', return_value=Usage(3000*MIB, 0, MIB)):
+                second = status(self.root)
+                with self.assertRaises(LowDiskSpace):
+                    require_space(self.root)
+            self.assertTrue(first['can_collect'])
+            self.assertFalse(second['can_collect'])
+            self.assertEqual(second['free_bytes'], MIB)
+            self.assertEqual(scan.call_count, 1)
+            first['sizes']['batches'] = 999
+            self.assertEqual(status(self.root)['sizes']['batches'], 100)
+
+    def test_summary_expires_and_separates_roots(self):
+        with patch('espbs.disk.time.monotonic', return_value=100) as clock:
+            with patch('espbs.disk._scan_sizes', return_value={'batches': 1}) as scan:
+                status(self.root)
+                clock.return_value = 129
+                self.assertEqual(status(self.root)['sizes_age_seconds'], 29)
+                self.assertEqual(scan.call_count, 1)
+                clock.return_value = 130
+                status(self.root)
+                status(self.root + '/another')
+                self.assertEqual(scan.call_count, 3)
+
+    def test_concurrent_requests_share_one_scan(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with patch('espbs.disk._scan_sizes', return_value={'batches': 1}) as scan:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(status, [self.root] * 16))
+            self.assertEqual(scan.call_count, 1)
+
+    def test_disappearing_file_and_index_accounting(self):
+        from pathlib import Path
+        import sqlite3
+        from contextlib import closing
+        from espbs.disk import _file_size, _scan_sizes
+        self.assertEqual(_file_size(Path(self.root) / 'missing'), 0)
+        self.assertEqual(_file_size(Path(self.root)), 0)
+        index = Path(self.root) / 'job-index.sqlite3'
+        with closing(sqlite3.connect(index)) as db, db:
+            db.execute('CREATE TABLE fixture (id INTEGER)')
+        self.assertEqual(_scan_sizes(Path(self.root))['job-index'], index.stat().st_size)
+
+    def test_scan_failure_is_not_cached(self):
+        with patch('espbs.disk._scan_sizes', side_effect=[PermissionError('denied'), {'jobs': 2}]) as scan:
+            with self.assertRaises(PermissionError):
+                status(self.root)
+            self.assertEqual(status(self.root)['sizes'], {'jobs': 2})
+            self.assertEqual(scan.call_count, 2)
+
     def test_refuses_new_job_without_creating_data(self):
         with patch('espbs.disk.shutil.disk_usage', return_value=Usage(2000*MIB, 1999*MIB, MIB)):
             with self.assertRaises(LowDiskSpace):
