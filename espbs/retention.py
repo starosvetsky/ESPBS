@@ -40,6 +40,14 @@ def cleanup(job, confirmation):
         raise ValueError('Type the full job ID to confirm cleanup')
     batch = Batch(job.root, job.id)
     with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(job.path.with_suffix('.lock')):
+        config = job.info()
+        if config.get('stream_range'):
+            from .jobs import Job
+            parent = Job(job.root, config['parent_id'])
+            with parent.db() as db:
+                snapshot = db.execute('SELECT ready FROM stream_parts WHERE child_id=?', (job.id,)).fetchone()
+            if not snapshot or not snapshot['ready']:
+                raise ValueError('Сначала завершите публикацию потоковой части')
         with batch.connection() as db:
             if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_changes'").fetchone()
                     and db.execute('SELECT 1 FROM record_changes LIMIT 1').fetchone()):
