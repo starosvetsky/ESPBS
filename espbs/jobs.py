@@ -109,7 +109,10 @@ class Job:
                 db.execute('INSERT INTO pages(url) VALUES (?)', (config['start_url'],))
         finally:
             db.close()
-        return cls(root, batch.id)
+        job = cls(root, batch.id)
+        from .job_index import register
+        register(job)
+        return job
 
     @classmethod
     def create_enrichment(cls, parent):

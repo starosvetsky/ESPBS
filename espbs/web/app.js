@@ -3,7 +3,29 @@ const api=async(path,options={})=>{const response=await fetch(path,{headers:{'Co
 const stateName={PREPARING:'Подготовка части',PAUSED_DISK:'Мало места',READY:'Готово',RUNNING:'Выполняется',STOPPED:'Остановлено',COMPLETED:'Завершено',FAILED:'Ошибка'};
 function connection(ok){const el=$('#connection');el.textContent=ok?'API подключён':'Нет соединения';el.className='badge '+(ok?'online':'offline')}
 function jobButton(job){const b=document.createElement('button');b.className='job'+(selected===job.id?' active':'');b.innerHTML=`<span><b>${stateName[job.state]||job.state}</b><i>${job.completed}/${job.target ?? 'весь каталог'}</i></span><small>${job.id.slice(0,8)} · ${escapeHtml(sourceLabel(job.source))}</small>`;b.onclick=()=>select(job.id);return b}
-async function loadJobs(){try{const data=await api('api/jobs');connection(true);const box=$('#jobs');box.innerHTML='';data.jobs.forEach(j=>box.append(jobButton(j)));if(!data.jobs.length)box.innerHTML='<p class="empty">Заданий пока нет</p>';if(selected){const found=data.jobs.find(j=>j.id===selected);if(found)render(found)}}catch(e){connection(false)}}
+let jobCursors=[''],jobsRequest=0;
+async function loadJobs(){
+ const request=++jobsRequest;
+ try{
+  const data=await api(`api/jobs?limit=25&after=${encodeURIComponent(jobCursors.at(-1))}`);
+  if(request!==jobsRequest)return;
+  connection(true);
+  const box=$('#jobs');box.innerHTML='';
+  data.jobs.forEach(j=>box.append(jobButton(j)));
+  if(!data.jobs.length)box.innerHTML='<p class="empty">Заданий пока нет</p>';
+  const nav=document.createElement('div');nav.className='section-title';
+  for(const [label,enabled,action] of [
+   ['Назад',jobCursors.length>1,()=>jobCursors.pop()],
+   ['Дальше',data.has_more,()=>jobCursors.push(data.next_cursor)],
+   ['К новым',jobCursors.length>1,()=>{jobCursors=['']}]
+  ]){
+   const button=document.createElement('button');button.className='ghost';
+   button.textContent=label;button.disabled=!enabled;
+   button.onclick=()=>{action();loadJobs()};nav.append(button);
+  }
+  box.append(nav);
+ }catch(e){if(request===jobsRequest)connection(false)}
+}
 async function select(id){selected=id;eventCursor=0;productCursors=[''];await loadJobs();await loadDetail()}
 function render(job){
  const host=$('#detail');if(!host.querySelector('#job-title'))host.replaceChildren($('#detail-template').content.cloneNode(true));

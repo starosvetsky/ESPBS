@@ -41,12 +41,6 @@ def job_info(root, job):
             'archive_parts': summary(job), 'archive_queue': queue_status(job)}
 
 
-def jobs(root):
-    directory = Path(root) / 'jobs'
-    return [job_info(root, Job(root, path.stem)) for path in
-            sorted(directory.glob('*.sqlite3'), key=lambda p: p.stat().st_mtime, reverse=True)]
-
-
 def launch_worker(root, job_id):
     command = [sys.executable, '-m', 'espbs', '--data-dir', str(Path(root).resolve()),
                'worker', job_id]
@@ -64,6 +58,8 @@ class API(ThreadingHTTPServer):
 
     def __init__(self, address, root):
         self.root = Path(root).resolve()
+        from .job_index import rebuild_missing
+        rebuild_missing(self.root)
         super().__init__(address, Handler)
 
 
@@ -171,7 +167,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_asset('favicon.svg', 'image/svg+xml')
             parts, query, job = self.route()
             if len(parts) == 2:
-                value = {'jobs': jobs(self.server.root)}
+                from .job_index import page
+                value = page(self.server.root, query.get('after', [''])[0],
+                             int(query.get('limit', ['25'])[0]))
             elif len(parts) == 3:
                 value = job_info(self.server.root, job)
             elif len(parts) == 4 and parts[3] == 'events':

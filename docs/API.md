@@ -19,7 +19,12 @@ python -m espbs --data-dir data serve
 `/archive-queue-stop`, состояние в `archive_queue` GET задания.
 Оба POST принимают `{}`. Семантика и ограничения: [ARCHIVE_QUEUE.md](ARCHIVE_QUEUE.md).
 
-- `GET /api/jobs` — список сохранённых заданий.
+- `GET /api/jobs?limit=25&after=` — страница заданий (limit 1–100).
+  Ответ: `jobs`, `has_more`, `next_cursor`. Порядок: дата создания и ID,
+  от новых к старым. Следующая страница принимает `next_cursor` в `after`.
+  Список больше не содержит `archive`, `retention`, `archive_parts` и
+  `archive_queue`: их нужно читать через `GET /api/jobs/{id}`.
+  Для обхода всей истории обязательно пройти все страницы.
 - `POST /api/jobs` с `{"source":"eltex","limit":3}` — создать ограниченное
   задание и запустить отдельный worker-процесс.
 - `GET /api/jobs/{id}` — состояние и фактические счётчики.

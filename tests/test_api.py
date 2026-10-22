@@ -45,6 +45,21 @@ class APITests(unittest.TestCase):
         self.assertGreater(value['reserve_bytes'], 0)
         self.assertIn('batches', value['sizes'])
 
+    def test_job_pages_are_lightweight(self):
+        for _ in range(3):
+            Job.create(self.temp.name)
+        with patch('espbs.api.archive_info', side_effect=AssertionError('Heavy listing')):
+            _, first = self.request('/api/jobs?limit=2')
+            _, last = self.request('/api/jobs?limit=2&after=' + first['next_cursor'])
+        self.assertTrue(first['has_more'])
+        self.assertFalse(last['has_more'])
+        self.assertEqual(len({j['id'] for j in first['jobs'] + last['jobs']}), 3)
+        self.assertNotIn('archive', first['jobs'][0])
+        for query in ('limit=101', 'after=invalid'):
+            with self.assertRaises(HTTPError) as error:
+                self.request('/api/jobs?' + query)
+            self.assertEqual(error.exception.code, 400)
+
     def test_archive_queue_start_stop_and_status(self):
         from espbs.archive_queue import run
         job = Job.create(self.temp.name, 1)
