@@ -120,11 +120,45 @@ class Batch:
             previous = db.execute("SELECT content_sha256 FROM records WHERE record_id=?", (record_id,)).fetchone()
             if previous and previous[0] == digest:
                 return "unchanged"
+            collected_at = utc_now()
             db.execute("""INSERT INTO records VALUES (?,?,?,?,?,?)
                 ON CONFLICT(record_id) DO UPDATE SET payload=excluded.payload,
                 content_sha256=excluded.content_sha256, collected_at=excluded.collected_at""",
-                       (record_id, source, external_id, payload, digest, utc_now()))
+                       (record_id, source, external_id, payload, digest, collected_at))
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_changes'").fetchone():
+                # Same transaction as the live record: never publish half a save.
+                db.execute('INSERT INTO record_changes(record_id,source,external_id,payload,content_sha256,collected_at) '
+                           'VALUES (?,?,?,?,?,?)',
+                           (record_id, source, external_id, payload, digest, collected_at))
             return "updated" if previous else "inserted"
+
+    def enable_change_log(self):
+        """Opt in before collection. Never pretend old records have arrival order."""
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_changes'").fetchone():
+                return
+            if db.execute('SELECT state FROM batch WHERE id=?', (self.id,)).fetchone()[0] != 'OPEN':
+                raise ValueError('Change log requires an open batch')
+            if db.execute('SELECT 1 FROM records LIMIT 1').fetchone():
+                raise ValueError('Enable change log before saving the first record')
+            db.execute('''CREATE TABLE record_changes (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                record_id TEXT NOT NULL, source TEXT NOT NULL, external_id TEXT NOT NULL,
+                payload TEXT NOT NULL, content_sha256 TEXT NOT NULL, collected_at TEXT NOT NULL
+            )''')
+
+    def changes(self, after=0, limit=25):
+        """Immutable committed versions, ordered by arrival rather than hash."""
+        if type(after) is not int or not 0 <= after <= 9223372036854775807:
+            raise ValueError('Invalid change cursor')
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError('Invalid change limit')
+        with self.connection() as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_changes'").fetchone():
+                raise ValueError('Change log is not enabled for this batch')
+            return [dict(row) for row in db.execute(
+                'SELECT * FROM record_changes WHERE seq>? ORDER BY seq LIMIT ?', (after, limit))]
 
     def seal(self):
         from .jobs import worker_lock

@@ -40,6 +40,10 @@ def cleanup(job, confirmation):
         raise ValueError('Type the full job ID to confirm cleanup')
     batch = Batch(job.root, job.id)
     with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(job.path.with_suffix('.lock')):
+        with batch.connection() as db:
+            if (db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_changes'").fetchone()
+                    and db.execute('SELECT 1 FROM record_changes LIMIT 1').fetchone()):
+                raise ValueError('Партия содержит журнал версий; их экспорт и подтверждение пока не реализованы')
         from .archive_queue import status as queue_status
         if queue_status(job).get('state') in ('QUEUED', 'RUNNING'):
             raise ValueError('Сначала остановите очередь архивов исходной партии')
