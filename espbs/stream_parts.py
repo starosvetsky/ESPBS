@@ -1,6 +1,7 @@
 """Bounded immutable snapshots of an opt-in journal, including live collectors."""
 import hashlib
 import json
+from uuid import uuid4
 
 from .attachments import references
 from .disk import MIB, require_space
@@ -81,24 +82,19 @@ def create_next(parent, after=0):
             if occupied >= WINDOW:
                 raise ValueError('Download, verify and explicitly clean a previous part first')
             require_space(parent.root, 256 * MIB + sum(len(row['payload'].encode()) for row in rows) * 3)
-            child = Job.create(parent.root, len(rows))
-            config = {'source': 'archive-part', 'parent_id': parent.id, 'start_url': '',
-                      'enrichment': 'none', 'photo_policy': info.get('photo_policy', 'official'),
-                      'stream_range': {'after': after, 'through': rows[-1]['seq']}}
-            with child.db() as db:
-                db.execute('UPDATE config SET value=?', (json.dumps(config),))
-                db.execute("UPDATE job SET state='PREPARING'")
-                db.execute('DELETE FROM pages')
+            child_id = str(uuid4())
             with parent.db() as db:
                 db.execute('CREATE TABLE IF NOT EXISTS dependents (id TEXT PRIMARY KEY, ready INTEGER)')
-                db.execute('INSERT INTO dependents VALUES (?,0)', (child.id,))
+                db.execute('INSERT INTO dependents VALUES (?,0)', (child_id,))
                 db.execute('INSERT INTO stream_parts(start_seq,end_seq,child_id,record_count,fingerprint) '
-                           'VALUES (?,?,?,?,?)', (after, rows[-1]['seq'], child.id, len(rows), fingerprint(rows)))
+                           'VALUES (?,?,?,?,?)', (after, rows[-1]['seq'], child_id, len(rows), fingerprint(rows)))
                 saved = db.execute('SELECT * FROM stream_parts WHERE start_seq=?', (after,)).fetchone()
         rows = [row for row in source.changes(after, MAX_PRODUCTS) if row['seq'] <= saved['end_seq']]
         if len(rows) != saved['record_count'] or fingerprint(rows) != saved['fingerprint']:
             raise ValueError('Journal range no longer matches the saved snapshot')
-        child = Job(parent.root, saved['child_id'])
+        from .stream_registration import ensure_child
+        require_space(parent.root, 256 * MIB + sum(len(row['payload'].encode()) for row in rows) * 3)
+        child = ensure_child(parent, saved)
         target = Batch(parent.root, child.id)
         with worker_lock(target.path.with_suffix('.maintenance.lock')), worker_lock(child.path.with_suffix('.lock')):
             require_space(parent.root, 16 * MIB + sum(len(row['payload'].encode()) for row in rows) * 3)
