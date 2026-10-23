@@ -29,6 +29,11 @@ def confirm_copy(job, report):
         if archive['archive_sha256'] != batch['archive_sha256']:
             raise ValueError('Archive does not match saved batch checksum')
         saved = {key: archive[key] for key in ('batch_id', 'archive_sha256', 'xml_sha256', 'record_count')}
+        if archive['version'] == 3:
+            for key in ('source_batch_id', 'stream_range'):
+                if report.get(key) != archive[key]:
+                    raise ValueError('Local verification report does not match: ' + key)
+                saved[key] = archive[key]
         saved['confirmed_at'] = utc_now()
         with job.db() as db:
             db.execute("INSERT OR REPLACE INTO retention VALUES (1,?,'VERIFIED')", (json.dumps(saved),))
