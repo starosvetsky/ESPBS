@@ -1,6 +1,7 @@
 """Bounded immutable snapshots of an opt-in journal, including live collectors."""
 import hashlib
 import json
+from contextlib import nullcontext
 from uuid import uuid4
 
 from .attachments import references
@@ -29,7 +30,7 @@ def _copy(target, rows):
                        tuple(row[key] for key in FIELDS))
 
 
-def create_next(parent, after=0):
+def create_next(parent, after=0, *, _gate_held=False):
     """Return the same child for a cursor; None means caught up, not finished.
 
     Parent maintenance serializes snapshots/cleanup, not the collector lock.
@@ -38,7 +39,8 @@ def create_next(parent, after=0):
     if type(after) is not int or not 0 <= after <= 9223372036854775807:
         raise ValueError('Invalid stream cursor')
     source = Batch(parent.root, parent.id)
-    with worker_lock(source.path.with_suffix('.maintenance.lock')):
+    gate = nullcontext() if _gate_held else worker_lock(source.path.with_suffix('.stream-gate.lock'))
+    with gate, worker_lock(source.path.with_suffix('.maintenance.lock')):
         info = parent.info()
         if info.get('source') == 'archive-part':
             raise ValueError('Use the original collection, not an archive part')

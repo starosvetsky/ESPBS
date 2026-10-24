@@ -268,7 +268,7 @@ class Handler(BaseHTTPRequestHandler):
                 job.stop()
             else:
                 state = job.reconcile()['state']
-                if state not in ('STOPPED', 'FAILED', 'READY', 'PAUSED_DISK'):
+                if state not in ('STOPPED', 'FAILED', 'READY', 'PAUSED_DISK', 'WAITING_PARTS', 'PAUSED_JOURNAL'):
                     raise ValueError('Job cannot be resumed from state ' + state)
                 require_space(self.server.root, 256 * MIB)
                 launch_worker(self.server.root, job.id)

@@ -9,6 +9,10 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 
+class JournalLimitReached(ValueError):
+    pass
+
+
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -120,6 +124,12 @@ class Batch:
             previous = db.execute("SELECT content_sha256 FROM records WHERE record_id=?", (record_id,)).fetchone()
             if previous and previous[0] == digest:
                 return "unchanged"
+            if db.execute("SELECT 1 FROM sqlite_master WHERE name='journal_budget'").fetchone():
+                budget = db.execute('SELECT * FROM journal_budget WHERE id=1').fetchone()
+                size = len(payload.encode('utf-8'))
+                if budget['versions'] >= budget['max_versions'] or budget['payload_bytes'] + size > budget['max_payload_bytes']:
+                    raise JournalLimitReached('Достигнут предел журнала версий. Данные сохранены; очистка частей не удаляет журнал родителя.')
+                db.execute('UPDATE journal_budget SET versions=versions+1,payload_bytes=payload_bytes+? WHERE id=1', (size,))
             collected_at = utc_now()
             db.execute("""INSERT INTO records VALUES (?,?,?,?,?,?)
                 ON CONFLICT(record_id) DO UPDATE SET payload=excluded.payload,
@@ -159,6 +169,24 @@ class Batch:
                 raise ValueError('Change log is not enabled for this batch')
             return [dict(row) for row in db.execute(
                 'SELECT * FROM record_changes WHERE seq>? ORDER BY seq LIMIT ?', (after, limit))]
+
+    def limit_change_log(self, max_versions, max_payload_bytes):
+        if any(type(value) is not int or not 1 <= value <= 9223372036854775807
+               for value in (max_versions, max_payload_bytes)):
+            raise ValueError('Invalid journal limits')
+        self.enable_change_log()
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            db.execute('''CREATE TABLE IF NOT EXISTS journal_budget (
+                id INTEGER PRIMARY KEY CHECK(id=1), max_versions INTEGER NOT NULL,
+                max_payload_bytes INTEGER NOT NULL, versions INTEGER NOT NULL, payload_bytes INTEGER NOT NULL)''')
+            saved = db.execute('SELECT * FROM journal_budget WHERE id=1').fetchone()
+            if saved:
+                if (saved['max_versions'], saved['max_payload_bytes']) != (max_versions, max_payload_bytes):
+                    raise ValueError('Journal limits cannot change on resume')
+                return
+            versions, size = db.execute('SELECT count(*),coalesce(sum(length(CAST(payload AS BLOB))),0) FROM record_changes').fetchone()
+            db.execute('INSERT INTO journal_budget VALUES (1,?,?,?,?)', (max_versions, max_payload_bytes, versions, size))
 
     def seal(self):
         from .jobs import worker_lock

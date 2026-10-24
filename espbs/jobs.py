@@ -3,7 +3,7 @@
 import json
 import os
 import sqlite3
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from uuid import UUID
 
@@ -70,7 +70,7 @@ class Job:
             db.close()
 
     @classmethod
-    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None, selectors=None, auto_enrich=False, photo_policy='official'):
+    def create(cls, root, limit=3, source='eltex', start_url='', enrichment=None, selectors=None, auto_enrich=False, photo_policy='official', streaming=False):
         from .sources import configuration
         if source == 'auto':
             from .directory import detect
@@ -79,6 +79,13 @@ class Job:
             config = configuration(source, start_url, enrichment)
         if auto_enrich:
             config['auto_enrich'] = True
+        if type(streaming) is not bool:
+            raise ValueError('streaming must be boolean')
+        if streaming:
+            if auto_enrich or config.get('source') not in ('eltex', 'olnisa', 'generic'):
+                raise ValueError('Streaming requires a source collection without automatic follow-up enrichment')
+            from .stream_control import MAX_VERSIONS, MAX_PAYLOAD_BYTES
+            config['streaming'] = {'max_versions': MAX_VERSIONS, 'max_payload_bytes': MAX_PAYLOAD_BYTES}
         if limit is not None and (type(limit) is not int or not 1 <= limit <= 9223372036854775807):
             raise ValueError('Лимит должен быть положительным целым числом или null (весь каталог)')
         if photo_policy not in ('store', 'official', 'fallback', 'none'):
@@ -260,6 +267,8 @@ class Job:
             return result
 
     def run(self, client=None, callback=None, official_client=None):
+        from .stream_control import checkpoint, request_slot, WaitingForParts
+        from .storage import JournalLimitReached
         from . import eltex, olnisa
         from .eltex import Stopped
         from .sources import enrich, official_images
@@ -285,6 +294,10 @@ class Job:
             try:
                 self.event('started', {}, callback)
                 require_space(self.root, 256 * MIB)
+                if config.get('streaming'):
+                    batch.limit_change_log(**config['streaming'])
+                    with self.db() as db:
+                        db.execute('CREATE TABLE IF NOT EXISTS item_commits (url TEXT PRIMARY KEY, payload TEXT NOT NULL)')
                 from .catalog import Catalog
                 catalog = Catalog(self.root)
                 from .directory import Directory
@@ -310,7 +323,8 @@ class Job:
                             if visited >= 100_000:
                                 raise ValueError('Проверено 100 000 страниц каталога; проверьте пагинацию')
                         require_space(self.root, 256 * MIB)
-                        html = client.get(page[0])
+                        with request_slot(self) if config.get('streaming') else nullcontext():
+                            html = client.get(page[0])
                         final_page = getattr(client, 'last_url', None)
                         final_page = final_page if isinstance(final_page, str) else page[0]
                         urls, pages = adapter.listing(html, final_page)
@@ -349,89 +363,114 @@ class Job:
                             item = db.execute('SELECT url FROM items WHERE done=0 ORDER BY seq LIMIT 1').fetchone()
                         if not item:
                             break
-                        require_space(self.root, 256 * MIB)
-                        if enricher:
+                        with request_slot(self) if config.get('streaming') else nullcontext():
+                            require_space(self.root, 256 * MIB)
+                            pending = None
+                            if config.get('streaming'):
+                                with self.db() as db:
+                                    pending = db.execute('SELECT payload FROM item_commits WHERE url=?', (item[0],)).fetchone()
+                            if pending:
+                                record = json.loads(pending['payload'])
+                            else:
+                                if enricher:
+                                    with self.db() as db:
+                                        original = json.loads(db.execute('SELECT payload FROM inputs WHERE id=?', (item[0],)).fetchone()[0])
+                                    record = enricher.enrich(original)
+                                    from .photos import select as select_photos
+                                    record = select_photos(record, config.get('photo_policy', 'official'), original.get('original_record', original))
+                                    record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
+                                    self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
+                                else:
+                                    html = client.get(item[0])
+                                    final_url = getattr(client, 'last_url', None)
+                                    final_url = final_url if isinstance(final_url, str) else item[0]
+                                    record = adapter.product(html, final_url)
+                                    record.setdefault('provenance', {})['materials_version'] = 2
+                                    official_brand = source_directory.source_brand(final_url)
+                                    source_official = bool(official_brand and (not record.get('manufacturer') or
+                                                           official_brand.casefold() == record['manufacturer'].casefold()))
+                                    if source_official:
+                                        record['manufacturer'] = record.get('manufacturer') or official_brand
+                                        record['quality']['issues'] = [issue for issue in record['quality']['issues'] if issue != 'Нет бренда']
+                                        record.setdefault('provenance', {})['official_source'] = final_url
+                                        record['enrichment'] = {'status': 'SOURCE_OFFICIAL', 'source_url': final_url}
+                                    from .photos import extract, OFFICIAL_HOSTS
+                                    from urllib.parse import urlsplit
+                                    if config.get('photo_policy') in ('store', 'fallback') or source_official:
+                                        record['images'] = extract(html, final_url)
+                                        record.setdefault('provenance', {})['images'] = {'source_url': final_url, 'policy': config.get('photo_policy', 'official')}
+                                        record['photo_policy'] = config.get('photo_policy', 'official')
+                                if official_client is not None:
+                                    from copy import deepcopy
+                                    source_record = deepcopy(record)
+                                    record = enrich(record, official_client)
+                                    from .photos import select as select_photos
+                                    record = select_photos(record, config.get('photo_policy', 'official'), source_record)
+                                    self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
+                                elif config['source'] == 'eltex':
+                                    record['images'] = official_images(record)
+                                elif not enricher and record.get('enrichment', {}).get('status') != 'SOURCE_OFFICIAL':
+                                    record['quality']['issues'].append('Официальные данные проверяются отдельным заданием' if config.get('auto_enrich') else 'Обогащение отключено')
+                                if config.get('photo_policy') == 'none':
+                                    def remove_images(value):
+                                        if isinstance(value, dict):
+                                            for field in ('image', 'images'):
+                                                value.pop(field, None)
+                                            for nested in value.values():
+                                                remove_images(nested)
+                                        elif isinstance(value, list):
+                                            for nested in value:
+                                                remove_images(nested)
+                                    remove_images(record)
+                                    record['images'] = []
+                            require_space(self.root, 256 * MIB)
+                            if not pending:
+                                from .materials import coverage
+                                record['coverage'] = coverage(record)
+                                if record['coverage']['missing']:
+                                    record['quality']['status'] = 'REVIEW'
+                            if config.get('streaming') and not pending:
+                                from .storage import canonical_json
+                                payload = canonical_json(record)
+                                if len(payload.encode()) > config['streaming']['max_payload_bytes']:
+                                    raise JournalLimitReached('Карточка превышает предел журнала; данные не записаны')
+                                require_space(self.root, 256 * MIB + len(payload.encode()) * 3)
+                                with self.db() as db:
+                                    db.execute('INSERT INTO item_commits VALUES (?,?)', (item[0], payload))
+                            outcome = batch.add(record)
+                            catalog.add(record, self.id)
+                            # A crash here replays this URL; Batch.add prevents duplicate rows.
                             with self.db() as db:
-                                original = json.loads(db.execute('SELECT payload FROM inputs WHERE id=?', (item[0],)).fetchone()[0])
-                            record = enricher.enrich(original)
-                            from .photos import select as select_photos
-                            record = select_photos(record, config.get('photo_policy', 'official'), original.get('original_record', original))
-                            record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
-                            self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
-                        else:
-                            html = client.get(item[0])
-                            final_url = getattr(client, 'last_url', None)
-                            final_url = final_url if isinstance(final_url, str) else item[0]
-                            record = adapter.product(html, final_url)
-                            record.setdefault('provenance', {})['materials_version'] = 2
-                            official_brand = source_directory.source_brand(final_url)
-                            source_official = bool(official_brand and (not record.get('manufacturer') or
-                                                   official_brand.casefold() == record['manufacturer'].casefold()))
-                            if source_official:
-                                record['manufacturer'] = record.get('manufacturer') or official_brand
-                                record['quality']['issues'] = [issue for issue in record['quality']['issues'] if issue != 'Нет бренда']
-                                record.setdefault('provenance', {})['official_source'] = final_url
-                                record['enrichment'] = {'status': 'SOURCE_OFFICIAL', 'source_url': final_url}
-                            from .photos import extract, OFFICIAL_HOSTS
-                            from urllib.parse import urlsplit
-                            if config.get('photo_policy') in ('store', 'fallback') or source_official:
-                                record['images'] = extract(html, final_url)
-                                record.setdefault('provenance', {})['images'] = {'source_url': final_url, 'policy': config.get('photo_policy', 'official')}
-                                record['photo_policy'] = config.get('photo_policy', 'official')
-                        if official_client is not None:
-                            from copy import deepcopy
-                            source_record = deepcopy(record)
-                            record = enrich(record, official_client)
-                            from .photos import select as select_photos
-                            record = select_photos(record, config.get('photo_policy', 'official'), source_record)
-                            self.event('enrichment', {'url': item[0], **record['enrichment']}, callback)
-                        elif config['source'] == 'eltex':
-                            record['images'] = official_images(record)
-                        elif not enricher and record.get('enrichment', {}).get('status') != 'SOURCE_OFFICIAL':
-                            record['quality']['issues'].append('Официальные данные проверяются отдельным заданием' if config.get('auto_enrich') else 'Обогащение отключено')
-                        if config.get('photo_policy') == 'none':
-                            def remove_images(value):
-                                if isinstance(value, dict):
-                                    for field in ('image', 'images'):
-                                        value.pop(field, None)
-                                    for nested in value.values():
-                                        remove_images(nested)
-                                elif isinstance(value, list):
-                                    for nested in value:
-                                        remove_images(nested)
-                            remove_images(record)
-                            record['images'] = []
-                        require_space(self.root, 256 * MIB)
-                        from .materials import coverage
-                        record['coverage'] = coverage(record)
-                        if record['coverage']['missing']:
-                            record['quality']['status'] = 'REVIEW'
-                        outcome = batch.add(record)
-                        catalog.add(record, self.id)
-                        # A crash here replays this URL; Batch.add prevents duplicate rows.
-                        with self.db() as db:
-                            db.execute('UPDATE items SET done=1,outcome=?,quality=? WHERE url=?',
-                                       (outcome, record['quality']['status'], item[0]))
-                            increment(db, 'completed')
-                            increment(db, 'quality:' + record['quality']['status'])
-                            increment(db, 'coverage:measured')
-                            for field, present in record['coverage']['fields'].items():
-                                increment(db, 'coverage:' + field, int(present))
-                            if 'enrichment' in record:
-                                increment(db, 'enrichment:' + record['enrichment']['status'])
-                        self.event('saved', {'url': item[0], 'outcome': outcome,
-                                            'completed': self.info()['completed']}, callback)
+                                db.execute('UPDATE items SET done=1,outcome=?,quality=? WHERE url=?',
+                                           (outcome, record['quality']['status'], item[0]))
+                                if config.get('streaming'):
+                                    db.execute('DELETE FROM item_commits WHERE url=?', (item[0],))
+                                increment(db, 'completed')
+                                increment(db, 'quality:' + record['quality']['status'])
+                                increment(db, 'coverage:measured')
+                                for field, present in record['coverage']['fields'].items():
+                                    increment(db, 'coverage:' + field, int(present))
+                                if 'enrichment' in record:
+                                    increment(db, 'enrichment:' + record['enrichment']['status'])
+                            self.event('saved', {'url': item[0], 'outcome': outcome,
+                                                'completed': self.info()['completed']}, callback)
                     if target is not None and self.info()['discovered'] >= target:
                         break
                     with self.db() as db:
                         pending = db.execute('SELECT 1 FROM pages WHERE done=0 LIMIT 1').fetchone()
                     if not pending:
                         break
+                if config.get('streaming'):
+                    checkpoint(self, flush=True)
                 state, error = 'COMPLETED', None
                 if target is None and config.get('expected_total') and self.info()['completed'] < config['expected_total']:
                     error = f"Неполный сбор: сохранено {self.info()['completed']} из заявленных сайтом {config['expected_total']}"
             except LowDiskSpace as exc:
                 state, error = 'PAUSED_DISK', str(exc)
+            except WaitingForParts as exc:
+                state, error = 'WAITING_PARTS', str(exc)
+            except JournalLimitReached as exc:
+                state, error = 'PAUSED_JOURNAL', str(exc)
             except (Stopped, KeyboardInterrupt):
                 state, error = 'STOPPED', None
             except Exception as exc:
