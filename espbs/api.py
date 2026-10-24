@@ -37,7 +37,9 @@ def archive_info(root, job_id):
 def job_info(root, job):
     from .partitions import summary
     from .archive_queue import status as queue_status
-    return {**job.reconcile(), 'archive': archive_info(root, job.id), 'retention': receipt(job),
+    from .stream_status import summary as stream_summary
+    info = job.reconcile()
+    return {**info, 'stream': stream_summary(job, info), 'archive': archive_info(root, job.id), 'retention': receipt(job),
             'archive_parts': summary(job), 'archive_queue': queue_status(job)}
 
 
@@ -163,6 +165,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_asset('catalog.js', 'text/javascript; charset=utf-8')
             if self.path == '/workbench.js':
                 return self.send_asset('workbench.js', 'text/javascript; charset=utf-8')
+            if self.path == '/streaming.js':
+                return self.send_asset('streaming.js', 'text/javascript; charset=utf-8')
             if self.path == '/favicon.svg':
                 return self.send_asset('favicon.svg', 'image/svg+xml')
             parts, query, job = self.route()
@@ -172,6 +176,10 @@ class Handler(BaseHTTPRequestHandler):
                              int(query.get('limit', ['25'])[0]))
             elif len(parts) == 3:
                 value = job_info(self.server.root, job)
+            elif len(parts) == 4 and parts[3] == 'stream-parts':
+                from .stream_status import parts as stream_page
+                value = stream_page(job, int(query.get('after', ['0'])[0]),
+                                    int(query.get('limit', ['10'])[0]))
             elif len(parts) == 4 and parts[3] == 'events':
                 after = int(query.get('after', ['0'])[0])
                 limit = int(query.get('limit', ['100'])[0])
@@ -225,11 +233,24 @@ class Handler(BaseHTTPRequestHandler):
                 job = Job.create(self.server.root, payload.get('limit'),
                                  payload.get('source', 'eltex'), payload.get('start_url', ''),
                                  payload.get('enrichment'), payload.get('selectors'),
-                                 payload.get('auto_enrich', True), payload.get('photo_policy', 'official'))
+                                 payload.get('auto_enrich', not payload.get('streaming', False)),
+                                 payload.get('photo_policy', 'official'), payload.get('streaming', False))
                 launch_worker(self.server.root, job.id)
                 return self.send_json(202, job.info())
-            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich', 'archive-part', 'archive-queue-start', 'archive-queue-stop'):
+            if len(parts) != 4 or parts[3] not in ('stop', 'resume', 'archive', 'confirm-copy', 'cleanup', 'enrich', 'archive-part', 'stream-part', 'archive-queue-start', 'archive-queue-stop'):
                 raise FileNotFoundError('Route not found')
+            if job.info().get('streaming') and parts[3] in ('archive-part', 'archive-queue-start', 'archive', 'enrich'):
+                raise ValueError('Для потокового сбора используйте части журнала; исходная партия сохраняется')
+            if parts[3] == 'stream-part':
+                from .stream_parts import create_next
+                if not job.info().get('streaming'):
+                    raise ValueError('Not a streaming collection')
+                payload = self.body()
+                # Manual snapshots must not contend with the running collector's gate.
+                with worker_lock(job.path.with_suffix('.lock')):
+                    child = create_next(job, payload.get('after', 0))
+                return self.send_json(201 if child else 200,
+                                      job_info(self.server.root, child) if child else {'caught_up': True})
             if parts[3] in ('archive-queue-start', 'archive-queue-stop'):
                 from .archive_queue import start, stop
                 self.body()

@@ -9,3 +9,6 @@ select{width:100%;min-width:0;background:#0e1917;color:var(--text);padding:12px;
 #include-files-label{display:flex;align-items:flex-start;gap:8px;max-width:280px;line-height:1.5}
 #include-files-label[hidden]{display:none}
 #include-files{width:auto;flex:none;margin-top:3px}
+#stream-controls{display:block}#stream-controls[hidden]{display:none}
+.stream-summary,.stream-list{display:grid;gap:10px}.stream-list{margin-top:16px}
+.stream-summary p{font-size:12px;line-height:1.6;color:var(--muted);margin:4px 0}

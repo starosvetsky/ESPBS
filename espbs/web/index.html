@@ -8,6 +8,8 @@
   <form id="new-job">
 <label>Ссылка магазина, категории или товара<input id="start-url" type="url" placeholder="https://…" required></label>
 <label>Фотографии<select id="photo-policy"><option value="store">С сайта</option><option value="official" selected>С официального сайта</option><option value="fallback">С сайта; если отсутствуют — с официального</option></select></label>
+<label class="check"><input id="streaming" type="checkbox"> Части во время сбора (экспериментальный режим)</label>
+<small>В потоковом режиме: до двух неочищенных частей; затем ручное продолжение. Журнал ограничен 10 000 версий или 64 МиБ JSON и не очищается вместе с частями. Автоматическое последующее обогащение отключено.</small>
 <button id="start" disabled>Собрать весь каталог</button>
 <small id="source-help">Соберём доступные товары без лимита. Фото Olnisa запрещены: в режиме «С сайта» их не будет, в третьем режиме проверим официальный источник.</small>
 </form></section>
@@ -19,4 +21,4 @@
 </main><template id="detail-template"><div class="detail-head"><div><p class="eyebrow">АКТИВНОЕ ЗАДАНИЕ</p><h2 id="job-title"></h2></div><div class="actions"><button id="stop">Остановить</button><button id="resume">Продолжить</button></div></div>
 <div class="metrics"><div><span>Состояние</span><strong id="state"></strong></div><div><span>Найдено</span><strong id="discovered"></strong></div><div><span>Сохранено</span><strong id="completed"></strong></div><div><span>Объём сбора</span><strong id="target"></strong></div></div>
 <p id="error" class="error"></p><div class="archive"><div><span>Результат задания</span><strong id="archive-status">Архив ещё не подготовлен</strong><small id="archive-meta">Исходные записи останутся на сервере после скачивания.</small></div><button id="prepare">Подготовить ZIP/XML</button><a id="download" class="download" hidden>Скачать архив</a></div><section class="archive"><div><strong>Сохранённая копия и очистка</strong><p id="retention-status"></p><small>На компьютере выполните: python -m espbs verify путь-к-архиву.zip --receipt receipt.json. Затем выберите receipt.json. Подтверждение копии не удаляет данные.</small><input id="receipt-file" type="file" accept=".json"><button id="confirm-copy">Подтвердить копию</button><button id="cleanup">Очистить партию на сервере</button></div></section><div class="columns"><section><h3>Товары партии</h3><div class="actions"><button id="prev-products" class="ghost">Назад</button><span id="product-page"></span><button id="next-products" class="ghost">Далее</button></div><div id="products"></div></section><section><h3>Журнал</h3><div id="events" class="events"></div></section></div></template>
-<script src="app.js"></script><script src="catalog.js"></script><script src="workbench.js"></script></body></html>
+<script src="app.js"></script><script src="catalog.js"></script><script src="streaming.js"></script><script src="workbench.js"></script></body></html>

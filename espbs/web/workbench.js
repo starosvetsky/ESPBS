@@ -7,7 +7,7 @@ $('#new-job').onsubmit=async e=>{
   submitBusy=true;updateStartState();
   try{
     const job=await post('api/jobs',{source:'auto',start_url:$('#start-url').value.trim(),limit:null,
-      auto_enrich:true,photo_policy:$('#photo-policy').value});
+      streaming:$('#streaming').checked,auto_enrich:!$('#streaming').checked,photo_policy:$('#photo-policy').value});
     await select(job.id);
   }catch(error){$('#source-help').textContent=error.message;}
   finally{submitBusy=false;updateStartState();}
@@ -15,6 +15,7 @@ $('#new-job').onsubmit=async e=>{
 const originalRender = render;
 render = function(job){
   originalRender(job);
+  renderStreaming(job);
   let box=$('#enrichment-controls');
   if(!box){box=document.createElement('div');box.id='enrichment-controls';box.className='archive';$('#detail').insertBefore(box,$('#detail').querySelector('.metrics'));}
   const fingerprint=JSON.stringify([job.id,job.state,job.retention?.state,job.child_id,job.enrichment_counts,job.coverage,job.archive_parts,job.archive_queue]);
@@ -25,11 +26,11 @@ render = function(job){
   const coverage=document.createElement('small');const c=job.coverage;
   coverage.textContent=c?.measured?`Заполненность ${c.measured} карточек: фото ${c.images||0}, документы ${c.documents||0}, характеристики ${c.attributes||0}, описание ${c.description||0}. Завершение задания не означает полноту карточек.`:'Заполненность этой партии не измерялась; завершение задания не означает полноту карточек.';
   box.append(coverage);
-  const button=document.createElement('button');button.textContent='Дополнить данными производителей';button.disabled=job.state!=='COMPLETED'||['CLEANING','CLEANED'].includes(job.retention?.state);
+  const button=document.createElement('button');button.textContent='Дополнить данными производителей';button.disabled=Boolean(job.streaming)||job.state!=='COMPLETED'||['CLEANING','CLEANED'].includes(job.retention?.state);
   button.onclick=async()=>{button.disabled=true;try{const child=await post(`api/jobs/${job.id}/enrich`,{});await select(child.id);}catch(error){alert(error.message);button.disabled=false;}};box.append(button);
   if(job.source==='archive-part'){
     const parent=document.createElement('button');parent.textContent='К исходной партии и следующей части';parent.onclick=()=>select(job.parent_id);box.append(parent);
-  }else{
+  }else if(!job.streaming){
     const parts=job.archive_parts||{};
     const queue=job.archive_queue||{},active=['QUEUED','RUNNING'].includes(queue.state);
     const queueNames={QUEUED:'Запускается',RUNNING:'Готовит архивы',WAITING_DOWNLOAD:'Ждёт скачивания и отдельной очистки частей',PAUSED_DISK:'Пауза: мало места',STOPPED:'Остановлена',FAILED:'Ошибка',REVIEW:'Нужна проверка отчёта',COMPLETED:'Очередь завершена'};

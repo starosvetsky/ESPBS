@@ -39,6 +39,113 @@ class APITests(unittest.TestCase):
             content = response.read()
             return response.status, json.loads(content) if content else None
 
+    @patch('espbs.api.launch_worker')
+    def test_stream_creation_is_opt_in_and_rejects_mixed_modes(self, launch):
+        _, created = self.request('/api/jobs', 'POST', {'streaming': True})
+        self.assertEqual(created['streaming']['max_versions'], 10000)
+        self.assertFalse(created.get('auto_enrich'))
+        route = '/api/jobs/' + created['id']
+        _, detail = self.request(route)
+        self.assertEqual(detail['stream']['budget']['versions'], 0)
+        _, empty = self.request(route + '/stream-parts')
+        self.assertEqual(empty['parts'], [])
+        for payload in ({'streaming': 'true'}, {'streaming': True, 'auto_enrich': True}):
+            with self.assertRaises(HTTPError) as error:
+                self.request('/api/jobs', 'POST', payload)
+            self.assertEqual(error.exception.code, 400)
+        for action in ('archive-part', 'archive-queue-start', 'archive', 'enrich'):
+            with self.assertRaises(HTTPError) as error:
+                self.request(route + '/' + action, 'POST', {})
+            self.assertEqual(error.exception.code, 400)
+        launch.assert_called_once()
+        ordinary = Job.create(self.temp.name)
+        for method, suffix, body in [('GET', '/stream-parts', None), ('POST', '/stream-part', {})]:
+            with self.assertRaises(HTTPError) as error:
+                self.request('/api/jobs/' + ordinary.id + suffix, method, body)
+            self.assertEqual(error.exception.code, 400)
+
+    def test_stream_parts_download_confirm_cleanup_and_resume(self):
+        job = Job.create(self.temp.name, streaming=True)
+        batch = Batch(self.temp.name, job.id)
+        batch.limit_change_log(**job.info()['streaming'])
+        for number in range(51):
+            batch.add(record(number))
+        route = '/api/jobs/' + job.id
+        _, first = self.request(route + '/stream-part', 'POST', {'after': 0})
+        _, repeated = self.request(route + '/stream-part', 'POST', {'after': 0})
+        self.assertEqual(first['id'], repeated['id'])
+        self.request(route + '/stream-part', 'POST', {'after': 25})
+        _, page = self.request(route + '/stream-parts?limit=1')
+        self.assertTrue(page['has_more'])
+        _, second = self.request(route + '/stream-parts?limit=1&after=1')
+        self.assertFalse(second['has_more'])
+        self.assertEqual(second['parts'][0]['start_seq'], 25)
+        _, detail = self.request(route)
+        self.assertEqual(detail['stream']['occupied'], 2)
+        self.assertFalse(detail['stream']['can_prepare'])
+        child_route = '/api/jobs/' + first['id']
+        self.request(child_route + '/archive', 'POST', {})
+        with urlopen(self.base + child_route + '/archive', timeout=3) as response:
+            downloaded = self.server.root / 'downloaded-stream.zip'
+            downloaded.write_bytes(response.read())
+        report = verify_archive(downloaded)
+        self.assertEqual(report['source_batch_id'], job.id)
+        self.assertEqual(report['stream_range'], {'after': 0, 'through': 25})
+        with self.assertRaises(HTTPError):
+            self.request(child_route + '/cleanup', 'POST', {'confirmation': first['id']})
+        self.request(child_route + '/confirm-copy', 'POST', report)
+        _, detail = self.request(route)
+        self.assertEqual(detail['stream']['occupied'], 2)
+        self.request(child_route + '/cleanup', 'POST', {'confirmation': first['id']})
+        _, detail = self.request(route)
+        self.assertEqual(detail['stream']['occupied'], 1)
+        self.assertEqual(detail['stream']['budget']['versions'], 51)
+        self.assertTrue(detail['stream']['can_prepare'])
+        _, page = self.request(route + '/stream-parts')
+        self.assertEqual(page['parts'][0]['retention_state'], 'CLEANED')
+        with job.db() as db:
+            db.execute("UPDATE job SET state='WAITING_PARTS'")
+        with patch('espbs.api.launch_worker') as launch:
+            self.request(route + '/resume', 'POST', {})
+            launch.assert_called_once()
+        _, tail = self.request(route + '/stream-part', 'POST', {'after': 50})
+        self.assertEqual(tail['completed'], 1)
+        _, caught_up = self.request(route + '/stream-part', 'POST', {'after': 51})
+        self.assertEqual(caught_up, {'caught_up': True})
+        self.assertEqual(batch.info()['state'], 'OPEN')
+
+    def test_stream_pending_reservation_is_visible_and_retryable(self):
+        job = Job.create(self.temp.name, streaming=True)
+        batch = Batch(self.temp.name, job.id)
+        batch.limit_change_log(**job.info()['streaming'])
+        batch.add(record(1))
+        route = '/api/jobs/' + job.id
+        from espbs.jobs import worker_lock
+        with worker_lock(job.path.with_suffix('.lock')):
+            with self.assertRaises(HTTPError) as error:
+                self.request(route + '/stream-part', 'POST', {})
+            self.assertEqual(error.exception.code, 400)
+        self.assertEqual(job.info()['state'], 'READY')
+        with patch('espbs.stream_registration.ensure_child', side_effect=RuntimeError('fixture crash')):
+            with self.assertRaises(HTTPError) as error:
+                self.request(route + '/stream-part', 'POST', {})
+            self.assertEqual(error.exception.code, 500)
+        _, detail = self.request(route)
+        self.assertTrue(detail['stream']['unfinished'])
+        _, page = self.request(route + '/stream-parts')
+        self.assertFalse(page['parts'][0]['ready'])
+        reserved = page['parts'][0]['child_id']
+        _, child = self.request(route + '/stream-part', 'POST', {})
+        self.assertEqual(child['id'], reserved)
+        for suffix in ('?after=-1', '?after=abc', '?limit=101', '?limit=0'):
+            with self.assertRaises(HTTPError) as error:
+                self.request(route + '/stream-parts' + suffix)
+            self.assertEqual(error.exception.code, 400)
+        for after in (True, '0', -1):
+            with self.assertRaises(HTTPError) as error:
+                self.request(route + '/stream-part', 'POST', {'after': after})
+            self.assertEqual(error.exception.code, 400)
+
     def test_storage_status(self):
         status, value = self.request('/api/storage')
         self.assertEqual(status, 200)
