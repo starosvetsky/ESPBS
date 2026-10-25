@@ -237,7 +237,13 @@ class APITests(unittest.TestCase):
 
     def test_inventory_includes_legacy_batches_search_and_cleanup(self):
         first, second = Batch.create(self.temp.name), Batch.create(self.temp.name)
-        first.add({**record(1), 'name': 'Сетевой коммутатор <script>'})
+        first.add({**record(1), 'name': 'Сетевой коммутатор <script>',
+                   'source': 'olnisa', 'source_url': 'https://olnisa.ru/product/1/',
+                   'provenance': {'fields': {'Поставщик': 'Olnisa'}},
+                   'offer': {'price_text': '100 ₽', 'source_url': 'https://olnisa.ru/product/1/'},
+                   'documents': [{'name': 'Паспорт', 'url': 'https://maker.invalid/a.pdf',
+                                  'source_url': 'https://olnisa.ru/product/1/'}],
+                   'images': ['https://olnisa.ru/a.jpg', 'https://maker.invalid/a.jpg']})
         second.add(record(2))
         _, summary = self.request('/api/inventory/batches')
         self.assertEqual(summary['record_count'], 2)
@@ -249,6 +255,17 @@ class APITests(unittest.TestCase):
         from urllib.parse import quote
         _, found = self.request('/api/inventory/products?q=' + quote('СЕТЕВОЙ'))
         self.assertEqual(found['products'][0]['batch_id'], first.id)
+        product = found['products'][0]['product']
+        self.assertNotIn('source', product)
+        self.assertNotIn('source_url', product)
+        self.assertNotIn('provenance', product)
+        self.assertNotIn('source_url', product['offer'])
+        self.assertNotIn('source_url', product['documents'][0])
+        self.assertEqual(product['images'], ['https://maker.invalid/a.jpg'])
+        self.assertNotIn('Olnisa', json.dumps(product, ensure_ascii=False))
+        raw = json.loads(next(first.records())['payload'])
+        self.assertEqual(raw['source'], 'olnisa')
+        self.assertEqual(raw['provenance']['fields']['Поставщик'], 'Olnisa')
         _, filtered = self.request('/api/inventory/products?batch=' + second.id)
         self.assertEqual(len(filtered['products']), 1)
         with first.connection() as db:

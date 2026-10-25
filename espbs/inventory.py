@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from .storage import Batch
+from .presentation import public_product
 
 
 def batches(root):
@@ -33,7 +34,7 @@ def products(root, batch_id='', after='', query='', limit=50):
             for row in rows:
                 items.append({'cursor': path.stem + ':' + row['record_id'],
                               'batch_id': path.stem, 'collected_at': row['collected_at'],
-                              'product': json.loads(row['payload'])})
+                              'product': public_product(json.loads(row['payload']))})
         if len(items) > limit:
             break
     return {'products': items[:limit], 'has_more': len(items) > limit,
