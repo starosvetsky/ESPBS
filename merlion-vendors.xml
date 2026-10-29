@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='utf-8'?>
+<vendors source="https://vad.merlion.ru/vendors-and-solutions/" collected_at="2026-10-29" count="18" logo_format="url">
+  <vendor id="merlion-vad-vendor-yadro">
+    <name>YADRO</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/yadro/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/yadro.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российская технологическая компания (входит в «ИКС Холдинг»): вычислительные платформы, системы обработки и хранения данных, телекоммуникационное и сетевое оборудование, персональные устройства, разработка микропроцессоров. Клиенты — банки, промышленность, транспорт, ритейл, телеком, госсектор.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-aquarius">
+    <name>Aquarius</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/aquarius/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/aquarius.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский разработчик и производитель компьютерной техники и ИТ-решений (35 лет с основания в 2024). Два производственных комплекса — в Шуе и Твери: клиентские устройства, серверы и СХД; также решения в области виртуализации, корпоративной мобильности и информационной безопасности.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-iru">
+    <name>IRU</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/iru/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/iru.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский производитель компьютерной техники с 2002 года, входит в тройку лидеров сегмента настольных ПК. Выпускает компьютеры, моноблоки, ноутбуки, графические и рабочие станции, серверы, СХД и программно-аппаратные комплексы.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-delta-computers">
+    <name>Delta Computers</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/delta-computers/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/delta-computers.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский разработчик и производитель ИТ-оборудования с 2016 года: серверы и системы хранения, GPGPU-платформы, Ethernet-коммутаторы, системы высокоскоростного интерконнекта для HPC, ПК и мониторы.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-qtech">
+    <name>QTECH</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/qtech/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/qtech.svg</logo_url>
+    <has_servers>false</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российская компания, разрабатывает и производит оборудование доступа операторского класса: xDSL, MetroEthernet, PON, Wi-Fi, PDH/SDH, РРЛ.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-inferit">
+    <name>Инферит Техника</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/inferit/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/inferit.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский производитель компьютерного и серверного оборудования, входящий в кластер «СФ Тех» группы Softline. Завод во Фрязино площадью 7000 кв. м рассчитан на выпуск до 300 000 единиц техники и 60 000 электронных модулей в год.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-kraftway">
+    <name>Kraftway</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/kraftway/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/kraftway.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский производственно-инжиниринговый вендор с 1993 года: доверенная вычислительная техника, ПК, ноутбуки, серверы, СХД, телеком-оборудование и защитное ПО.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-icl">
+    <name>ICL Техно</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/icl/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/icl.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский производитель вычислительной техники: материнские платы, настольные и мобильные системы, серверы, СХД, инфоматы.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-depo">
+    <name>DEPO Computers</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/depo/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/depo.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Один из крупнейших российских вендоров вычислительной техники: 30+ лет опыта, собственное производство и НИОКР в Москве. Ежегодно выпускает более 20 000 серверов и 300 000 компьютерных систем.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-rikor">
+    <name>ГК RIKOR</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/rikor/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/rikor.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский производитель вычислительной техники полного цикла, завод «Рикор Электроникс» в Арзамасе: вычислительная техника, микроэлектроника, ПО.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-amur">
+    <name>AMUR</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/amur/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/amur.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский производитель реестровой вычислительной техники: десктопы, моноблоки, ноутбуки, мини-ПК, серверы. Merlion — эксклюзивный дистрибьютор.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-openyard">
+    <name>OpenYard</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/openyard/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/openyard.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский производитель серверов OpenYard: стоечные 19" (RS101 1U, RS201 2U) и OCP 21" (HN201, стойка OCP).</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-beshtau">
+    <name>Группа компаний «Бештау»</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/beshtau/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/beshtau.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский разработчик и производитель компьютерной техники: ПК, мониторы, моноблоки, ноутбуки, серверы, клавиатуры, мыши; площадки в Ростове-на-Дону и Ессентуках.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-sharxdc">
+    <name>SharxDC</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/sharxdc/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/sharxdc.svg</logo_url>
+    <has_servers>false</has_servers>
+    <has_storage>true</has_storage>
+    <description>«Шаркс Датацентр» — российский производитель гиперконвергентных решений SharxBase, SharxDesk, SharxStorage: ПО виртуализации, NFV/SDN, отказоустойчивые СХД.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-shvacher">
+    <name>SHVACHER</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/shvacher/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/shvacher.svg</logo_url>
+    <has_servers>true</has_servers>
+    <has_storage>true</has_storage>
+    <description>Российский производитель серверов, СХД и программно-аппаратных комплексов. Решения в реестре Минпромторга, совместимы с российскими ОС.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-ivk">
+    <name>ИВК</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/ivk/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/ivk.svg</logo_url>
+    <has_servers>false</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский разработчик и производитель наукоёмких ИТ: прикладного и инфраструктурного ПО, программно-аппаратных решений, средств защиты информации и промышленного оборудования; более 25 лет на рынке, в группу входит «Базальт СПО».</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-gigant">
+    <name>ГИГАНТ</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/gigant/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/gigant.svg</logo_url>
+    <has_servers>false</has_servers>
+    <has_storage>false</has_storage>
+    <description>Российский производитель компьютерной техники (ПК, моноблоки), тестирование по ТР ТС 004/2011 и 020/2011.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+  <vendor id="merlion-vad-vendor-merlion">
+    <name>Merlion</name>
+    <profile_url>https://vad.merlion.ru/vendors-and-solutions/merlion/</profile_url>
+    <logo_url>https://static.lc-group.ru/img/partners/white/merlion.svg</logo_url>
+    <has_servers>false</has_servers>
+    <has_storage>false</has_storage>
+    <description>Дистрибьютор с 1992 года, более 500 брендов в портфеле; на странице только акции и новости вендора.</description>
+    <source_date>2026-10-29</source_date>
+  </vendor>
+</vendors>
