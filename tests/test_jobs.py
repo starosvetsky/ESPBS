@@ -92,13 +92,62 @@ class JobTests(unittest.TestCase):
         self.assertIsNone(Job.create(self.root, None).info()['target'])
         self.assertEqual(Job.create(self.root, 1_000_001).info()['target'], 1_000_001)
 
-    def test_http_error_preserves_checkpoint(self):
+    def test_page_error_retries_then_finishes_without_manual_resume(self):
         job = Job.create(self.root, 1)
-        with patch.object(FakeClient, 'get', side_effect=RuntimeError('HTTP 429')):
+        with patch.object(FakeClient, 'get', side_effect=RuntimeError('HTTP 503')):
             result = job.run(FakeClient())
+        self.assertEqual(result['state'], 'COMPLETED')
+        self.assertEqual(result['completed'], 0)
+        self.assertEqual(result['failed_pages'], 1)
+        retries = [event for event in job.events() if event['kind'] == 'page_retry']
+        self.assertEqual([event['attempt'] for event in retries], [1, 2])
+        self.assertEqual([event for event in job.events() if event['kind'] == 'page_skipped'][0]['attempt'], 3)
+
+    def test_broken_product_is_recorded_and_collection_continues(self):
+        job = Job.create(self.root, 2)
+        client = FakeClient()
+        original = client.get
+        def get(url):
+            if url == URLS[0]:
+                raise RuntimeError('503 Service Unavailable')
+            return original(url)
+        client.get = get
+        result = job.run(client)
+        self.assertEqual(result['state'], 'COMPLETED')
+        self.assertEqual(result['completed'], 1)
+        self.assertEqual(result['failed'], 1)
+        self.assertIn('пропущено карточек', result['error'])
+        self.assertEqual(Batch(self.root, job.id).info()['record_count'], 1)
+        with job.db() as db:
+            rows = list(db.execute('SELECT url,done,outcome,quality FROM items ORDER BY seq'))
+        self.assertEqual(tuple(rows[0]), (URLS[0], 1, 'ERROR', 'ERROR'))
+        self.assertNotEqual(rows[1]['outcome'], 'ERROR')
+        self.assertEqual(client.calls.count(URLS[1]), 1)
+        skipped = [event for event in job.events() if event['kind'] == 'item_skipped']
+        self.assertEqual(skipped[0]['url'], URLS[0])
+        self.assertEqual(skipped[0]['attempt'], 3)
+        self.assertIn('503', skipped[0]['error'])
+
+    def test_robots_error_still_stops_collection(self):
+        job = Job.create(self.root, 2)
+        client = FakeClient()
+        original = client.get
+        client.get = lambda url: (_ for _ in ()).throw(ValueError('robots.txt disallows product')) if url == URLS[0] else original(url)
+        result = job.run(client)
         self.assertEqual(result['state'], 'FAILED')
         self.assertEqual(result['completed'], 0)
+
+    def test_existing_job_schema_gets_error_tracking_columns(self):
+        job = Job.create(self.root, 1)
+        with job.db() as db:
+            db.execute('ALTER TABLE pages DROP COLUMN attempts')
+            db.execute('ALTER TABLE pages DROP COLUMN error')
+            db.execute('ALTER TABLE items DROP COLUMN attempts')
+            db.execute('ALTER TABLE items DROP COLUMN error')
         self.assertEqual(job.run(FakeClient())['state'], 'COMPLETED')
+        with job.db() as db:
+            self.assertIn('attempts', {row['name'] for row in db.execute('PRAGMA table_info(items)')})
+            self.assertIn('error', {row['name'] for row in db.execute('PRAGMA table_info(pages)')})
 
     def test_http_limits_robots_and_redirects(self):
         client = Client()
