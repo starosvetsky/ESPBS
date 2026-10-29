@@ -137,6 +137,24 @@ class JobTests(unittest.TestCase):
         self.assertEqual(result['state'], 'FAILED')
         self.assertEqual(result['completed'], 0)
 
+    def test_unavailable_robots_retries_without_skipping_product(self):
+        job = Job.create(self.root, 1)
+        client = FakeClient()
+        original = client.get
+        failures = [True]
+        def get(url):
+            if url == URLS[0] and failures:
+                failures.pop()
+                raise RuntimeError('Connection timed out for /robots.txt')
+            return original(url)
+        client.get = get
+        with patch('espbs.jobs.SOURCE_RETRY_SECONDS', 0):
+            result = job.run(client)
+        self.assertEqual(result['state'], 'COMPLETED')
+        self.assertEqual(result['completed'], 1)
+        self.assertEqual(result['failed'], 0)
+        self.assertEqual([event['kind'] for event in job.events()].count('source_wait'), 1)
+
     def test_existing_job_schema_gets_error_tracking_columns(self):
         job = Job.create(self.root, 1)
         with job.db() as db:

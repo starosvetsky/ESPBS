@@ -3,12 +3,24 @@
 import json
 import os
 import sqlite3
+import time
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from uuid import UUID
 
 from .storage import Batch, utc_now
 from .disk import require_space, LowDiskSpace, MIB
+
+SOURCE_RETRY_SECONDS = 30
+
+
+def wait_for_source(stopped, seconds=SOURCE_RETRY_SECONDS):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if stopped():
+            return False
+        time.sleep(min(.25, deadline - time.monotonic()))
+    return not stopped()
 
 def counters(db):
     if db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='counters'").fetchone():
@@ -345,9 +357,15 @@ class Job:
                         except (LowDiskSpace, WaitingForParts, JournalLimitReached, SourceBlocked, Stopped):
                             raise
                         except Exception as exc:
-                            if stage != 'prepare' or 'robots.txt' in str(exc):
+                            if stage != 'prepare' or 'robots.txt disallow' in str(exc).casefold():
                                 raise
                             message = str(exc)[:2000]
+                            if 'robots.txt' in message:
+                                self.event('source_wait', {'url': page[0], 'error': message,
+                                                          'retry_seconds': SOURCE_RETRY_SECONDS}, callback)
+                                if not wait_for_source(self.stopped, SOURCE_RETRY_SECONDS):
+                                    raise Stopped()
+                                continue
                             with self.db() as db:
                                 db.execute('UPDATE pages SET attempts=attempts+1,error=? WHERE url=?',
                                            (message, page[0]))
@@ -494,9 +512,15 @@ class Job:
                         except Exception as exc:
                             if stage != 'prepare':
                                 raise
-                            if 'robots.txt' in str(exc):
+                            if 'robots.txt disallow' in str(exc).casefold():
                                 raise
                             message = str(exc)[:2000]
+                            if 'robots.txt' in message:
+                                self.event('source_wait', {'url': item[0], 'error': message,
+                                                          'retry_seconds': SOURCE_RETRY_SECONDS}, callback)
+                                if not wait_for_source(self.stopped, SOURCE_RETRY_SECONDS):
+                                    raise Stopped()
+                                continue
                             with self.db() as db:
                                 db.execute('UPDATE items SET attempts=attempts+1,error=? WHERE url=?',
                                            (message, item[0]))
