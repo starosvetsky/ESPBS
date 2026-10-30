@@ -12,6 +12,11 @@ from .storage import Batch, utc_now
 from .disk import require_space, LowDiskSpace, MIB
 
 SOURCE_RETRY_SECONDS = 30
+SOURCE_RETRY_MAX_SECONDS = 15 * 60
+
+
+def source_retry_seconds(failures):
+    return min(SOURCE_RETRY_MAX_SECONDS, SOURCE_RETRY_SECONDS * (2 ** max(0, failures - 1)))
 
 
 def wait_for_source(stopped, seconds=SOURCE_RETRY_SECONDS):
@@ -331,6 +336,8 @@ class Job:
                         snapshot_config = json.loads(db.execute('SELECT value FROM config').fetchone()[0])
                     self.snapshot(snapshot_config, callback)
                 target = self.info()['target']
+                page_source_failures = 0
+                item_source_failures = 0
                 while True:
                     while True:
                         if self.stopped():
@@ -351,6 +358,7 @@ class Job:
                             with request_slot(self) if config.get('streaming') else nullcontext():
                                 stage = 'prepare'
                                 html = client.get(page[0])
+                            page_source_failures = 0
                             final_page = getattr(client, 'last_url', None)
                             final_page = final_page if isinstance(final_page, str) else page[0]
                             urls, pages = adapter.listing(html, final_page)
@@ -361,9 +369,12 @@ class Job:
                                 raise
                             message = str(exc)[:2000]
                             if 'robots.txt' in message:
+                                page_source_failures += 1
+                                retry_seconds = source_retry_seconds(page_source_failures)
                                 self.event('source_wait', {'url': page[0], 'error': message,
-                                                          'retry_seconds': SOURCE_RETRY_SECONDS}, callback)
-                                if not wait_for_source(self.stopped, SOURCE_RETRY_SECONDS):
+                                                          'attempt': page_source_failures,
+                                                          'retry_seconds': retry_seconds}, callback)
+                                if not wait_for_source(self.stopped, retry_seconds):
                                     raise Stopped()
                                 continue
                             with self.db() as db:
@@ -434,6 +445,7 @@ class Job:
                                         self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
                                     else:
                                         html = client.get(item[0])
+                                        item_source_failures = 0
                                         final_url = getattr(client, 'last_url', None)
                                         final_url = final_url if isinstance(final_url, str) else item[0]
                                         record = adapter.product(html, final_url)
@@ -516,9 +528,12 @@ class Job:
                                 raise
                             message = str(exc)[:2000]
                             if 'robots.txt' in message:
+                                item_source_failures += 1
+                                retry_seconds = source_retry_seconds(item_source_failures)
                                 self.event('source_wait', {'url': item[0], 'error': message,
-                                                          'retry_seconds': SOURCE_RETRY_SECONDS}, callback)
-                                if not wait_for_source(self.stopped, SOURCE_RETRY_SECONDS):
+                                                          'attempt': item_source_failures,
+                                                          'retry_seconds': retry_seconds}, callback)
+                                if not wait_for_source(self.stopped, retry_seconds):
                                     raise Stopped()
                                 continue
                             with self.db() as db:

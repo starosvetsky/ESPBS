@@ -155,6 +155,26 @@ class JobTests(unittest.TestCase):
         self.assertEqual(result['failed'], 0)
         self.assertEqual([event['kind'] for event in job.events()].count('source_wait'), 1)
 
+    def test_unavailable_robots_uses_bounded_backoff(self):
+        job = Job.create(self.root, 1)
+        client = FakeClient()
+        original = client.get
+        failures = [True, True, True]
+        def get(url):
+            if url == URLS[0] and failures:
+                failures.pop()
+                raise RuntimeError('Connection timed out for /robots.txt')
+            return original(url)
+        client.get = get
+        waits = []
+        with patch('espbs.jobs.wait_for_source', side_effect=lambda stopped, seconds: waits.append(seconds) or True):
+            result = job.run(client)
+        self.assertEqual(result['state'], 'COMPLETED')
+        self.assertEqual(waits, [30, 60, 120])
+        events = [event for event in job.events() if event['kind'] == 'source_wait']
+        self.assertEqual([event['attempt'] for event in events], [1, 2, 3])
+        self.assertEqual([event['retry_seconds'] for event in events], waits)
+
     def test_existing_job_schema_gets_error_tracking_columns(self):
         job = Job.create(self.root, 1)
         with job.db() as db:
