@@ -40,6 +40,16 @@ class RecognitionTests(unittest.TestCase):
         self.assertEqual(len(links), 2)
         self.assertEqual(pages, [])
 
+    def test_bitrix_catalog_section_items_without_numeric_price(self):
+        html = '<main>' + ''.join(
+            '<div class="catalog-section-item" data-role="item">'
+            '<div class="catalog-section-item-image"><img src="/missing.png"></div>'
+            f'<div class="catalog-section-item-name"><a href="/catalog/model-{i}/">Model {i}</a></div>'
+            '<div class="catalog-section-item-price">Цена по запросу</div></div>'
+            for i in (1, 2, 3)) + '</main>'
+        self.assertEqual(self.adapter.listing(html, self.url)[0], [
+            f'https://example.org/catalog/model-{i}/' for i in (1, 2, 3)])
+
     def test_itemlist_without_product_schema_and_breadcrumbs(self):
         html = ld({'@type': 'ItemList', 'itemListElement': [
             {'@type': 'ListItem', 'item': {'url': '/p/1'}},

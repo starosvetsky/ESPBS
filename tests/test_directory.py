@@ -115,6 +115,18 @@ class DirectoryTests(unittest.TestCase):
         self.assertEqual(Job(self.root,result['child_id']).info()['parent_id'],parent.id)
         launch.assert_called_once()
 
+    def test_empty_collection_does_not_launch_followup(self):
+        parent=Job.create(self.root,1,'auto','https://shop.example/catalog/',auto_enrich=True)
+        client=Mock();client.get.return_value='<h1>Empty catalog</h1>'
+        events=[]
+        with patch('espbs.api.launch_worker') as launch:
+            result=parent.run(client, callback=events.append)
+        self.assertEqual(result['state'],'COMPLETED')
+        self.assertEqual(result['completed'],0)
+        self.assertNotIn('обогащение не запущено',result['error'].casefold())
+        self.assertIn('enrichment_unneeded',[event['kind'] for event in events])
+        launch.assert_not_called()
+
     def test_large_snapshot_is_background_and_blocks_early_cleanup(self):
         parent=Job.create(self.root,101)
         batch=Batch(self.root,parent.id)

@@ -142,7 +142,9 @@ def repeated_links(scope, url):
                              re.search(r'наименование|название|товар|\bname\b|\bproduct\b', heading))
         for node in nodes:
             text = node.get_text(' ', strip=True)
-            marked = bool(node.get('data-product-id') or re.search(r'product[-_]?(?:item|card)|catalog[-_]item', ' '.join(node.get('class', [])), re.I))
+            marked = bool(node.get('data-product-id') or re.search(
+                r'product[-_]?(?:item|card)|catalog(?:[-_]section)?[-_]item',
+                ' '.join(node.get('class', [])), re.I))
             if len(text) > 2000 or not (PRICE.search(text) or node.select_one('[itemprop~="price"]') or product_table or marked and node.select_one('img')):
                 continue
             anchors = node.select('a[href]')

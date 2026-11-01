@@ -586,6 +586,9 @@ class Job:
             self.event(state.lower(), {'error': error}, callback)
         if state == 'COMPLETED' and config.get('auto_enrich'):
             final = self.info()
+            if not final['completed']:
+                self.event('enrichment_unneeded', {'reason': 'В исходной партии нет карточек для обогащения'}, callback)
+                return self.info()
             if final['completed'] and final['enrichment_counts'].get('SOURCE_OFFICIAL') == final['completed']:
                 self.event('enrichment_unneeded', {'reason': 'Все карточки уже получены с официального источника'}, callback)
                 return self.info()
