@@ -281,6 +281,20 @@ class APITests(unittest.TestCase):
         with urlopen(self.base + '/inventory.html') as response:
             self.assertIn('inventory.js', response.read().decode())
 
+    def test_inventory_all_batches_shows_only_newest_duplicate(self):
+        first, second = Batch.create(self.temp.name), Batch.create(self.temp.name)
+        duplicate = record(7)
+        first.add(duplicate)
+        second.add({**duplicate, 'description': 'newest'})
+        _, all_batches = self.request('/api/inventory/products?q=Synthetic&limit=10')
+        self.assertEqual(len(all_batches['products']), 1)
+        self.assertEqual(all_batches['products'][0]['batch_id'], second.id)
+        self.assertEqual(all_batches['products'][0]['product']['description'], 'newest')
+        _, first_batch = self.request('/api/inventory/products?batch=' + first.id)
+        _, second_batch = self.request('/api/inventory/products?batch=' + second.id)
+        self.assertEqual(len(first_batch['products']), 1)
+        self.assertEqual(len(second_batch['products']), 1)
+
     def test_catalog_paging_and_traffic_status(self):
         from espbs.catalog import Catalog
         from espbs.traffic import Traffic, SourceBlocked
