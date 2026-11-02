@@ -15,6 +15,8 @@ DATA_DIR.mkdir(exist_ok=True)
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+        from espbs.typography import configure_tk
+        configure_tk(self)
         self.title(APP_NAME)
         self.geometry("1180x780")
         self.minsize(980, 650)
@@ -44,7 +46,7 @@ class App(tk.Tk):
         top = ttk.Frame(self, padding=pad)
         top.pack(fill="x")
 
-        ttk.Label(top, text="EnergoStor Parser v0.5", font=("Segoe UI",18,"bold")).grid(row=0,column=0,columnspan=5,sticky="w")
+        ttk.Label(top, text="EnergoStor Parser v0.5", font=("Medeo Sans",18,"bold")).grid(row=0,column=0,columnspan=5,sticky="w")
         ttk.Label(top, text="Универсальный сборщик с политиками по источникам").grid(row=1,column=0,columnspan=5,sticky="w",pady=(2,14))
 
         ttk.Label(top, text="Источник").grid(row=2,column=0,sticky="w")
@@ -118,7 +120,7 @@ class App(tk.Tk):
 
         lf = ttk.LabelFrame(self, text="Журнал", padding=8)
         lf.pack(fill="both", expand=True, padx=pad, pady=(0,pad))
-        self.logbox = tk.Text(lf, wrap="word", font=("Consolas",9), state="disabled")
+        self.logbox = tk.Text(lf, wrap="word", font=("Medeo Mono",9), state="disabled")
         sb = ttk.Scrollbar(lf, orient="vertical", command=self.logbox.yview)
         self.logbox.configure(yscrollcommand=sb.set)
         self.logbox.pack(side="left", fill="both", expand=True)

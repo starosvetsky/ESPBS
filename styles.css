@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url("espbs/web/fonts/fonts.css");
 
 :root {
   color-scheme: dark;
@@ -8,8 +8,8 @@
   --text: #edf3ed;
   --muted: #9baaa1;
   --green: #a8e3ad;
-  --mono: "DM Mono", "Consolas", monospace;
-  --sans: "Manrope", "Segoe UI", sans-serif;
+  --mono: "Medeo Mono", monospace;
+  --sans: "Medeo Sans", sans-serif;
 }
 
 * { box-sizing: border-box; }

@@ -29,6 +29,8 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html styles.css favicon.svg .nojekyll _site/
+          mkdir -p _site/espbs/web
+          cp -R espbs/web/fonts _site/espbs/web/fonts
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

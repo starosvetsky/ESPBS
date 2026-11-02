@@ -39,6 +39,18 @@ class APITests(unittest.TestCase):
             content = response.read()
             return response.status, json.loads(content) if content else None
 
+    def test_local_fonts_are_served_with_correct_types(self):
+        for name in ('MedeoSansVariable.woff2', 'MedeoSansVariable-Italic.woff2',
+                     'MedeoMonoVariable.woff2', 'MedeoMonoVariable-Italic.woff2'):
+            with urlopen(self.base + '/fonts/' + name, timeout=3) as response:
+                self.assertEqual(response.headers.get_content_type(), 'font/woff2')
+                self.assertEqual(response.read(4), b'wOF2')
+        with urlopen(self.base + '/fonts/fonts.css', timeout=3) as response:
+            self.assertIn(b'Medeo Sans', response.read())
+        with self.assertRaises(HTTPError) as error:
+            urlopen(self.base + '/fonts/../api.py', timeout=3)
+        self.assertEqual(error.exception.code, 404)
+
     @patch('espbs.api.launch_worker')
     def test_stream_creation_is_opt_in_and_rejects_mixed_modes(self, launch):
         _, created = self.request('/api/jobs', 'POST', {'streaming': True})

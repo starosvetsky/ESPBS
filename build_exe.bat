@@ -11,6 +11,7 @@ pyinstaller --noconfirm --clean --onefile --windowed ^
   --collect-all bs4 ^
   --collect-all lxml ^
   --add-data "config;sources_config" ^
+  --add-data "espbs/web/fonts;espbs/web/fonts" ^
   app.py
 
 echo.

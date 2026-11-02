@@ -123,6 +123,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            font_path = self.path.split('?', 1)[0]
+            font_assets = {'fonts.css': 'text/css; charset=utf-8',
+                           'MedeoSansVariable.woff2': 'font/woff2',
+                           'MedeoSansVariable-Italic.woff2': 'font/woff2',
+                           'MedeoMonoVariable.woff2': 'font/woff2',
+                           'MedeoMonoVariable-Italic.woff2': 'font/woff2'}
+            if font_path.startswith('/fonts/') and font_path[7:] in font_assets:
+                return self.send_asset('fonts/' + font_path[7:], font_assets[font_path[7:]])
             path = urlsplit(self.path).path
             if path in ('/inventory', '/inventory.html', '/inventory.js', '/inventory.css'):
                 name = 'inventory.html' if path == '/inventory' else path[1:]
