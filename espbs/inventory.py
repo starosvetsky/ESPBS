@@ -10,6 +10,20 @@ def batches(root):
             sorted((Path(root) / 'batches').glob('*.sqlite3'))]
 
 
+def latest_enrichment(root):
+    """Return the newest global inventory enrichment job, if one exists."""
+    from .jobs import Job
+    found = []
+    for path in (Path(root) / 'jobs').glob('*.sqlite3'):
+        try:
+            job = Job(root, path.stem).reconcile()
+        except (FileNotFoundError, ValueError):
+            continue
+        if job.get('inventory_scope'):
+            found.append(job)
+    return max(found, key=lambda item: (item['created_at'], item['id']), default=None)
+
+
 def products(root, batch_id='', after='', query='', limit=50):
     if not 1 <= limit <= 100 or len(query) > 200:
         raise ValueError('Invalid query or limit')

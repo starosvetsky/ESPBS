@@ -146,6 +146,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200, products(self.server.root,
                     query.get('batch', [''])[0], query.get('after', [''])[0],
                     query.get('q', [''])[0], int(query.get('limit', ['50'])[0])))
+            if path == '/api/inventory/enrichment':
+                from .inventory import latest_enrichment
+                return self.send_json(200, {'job': latest_enrichment(self.server.root)})
             if urlsplit(self.path).path == '/api/catalog':
                 from .catalog import Catalog
                 query = parse_qs(urlsplit(self.path).query)
@@ -221,6 +224,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
                 raise ValueError('Content-Type must be application/json')
+            if self.path == '/api/inventory/enrichment':
+                payload = self.body()
+                job = Job.create_inventory_enrichment(
+                    self.server.root, payload.get('scope', 'all'))
+                launch_worker(self.server.root, job.id)
+                return self.send_json(202, job.info())
             if self.path in ('/api/probe', '/api/profiles', '/api/manufacturers', '/api/mappings'):
                 from .directory import Directory, probe
                 payload = self.body()

@@ -174,10 +174,39 @@ class Job:
                     db.execute('INSERT INTO dependents VALUES (?,0)', (child.id,))
             return child
 
+    @classmethod
+    def create_inventory_enrichment(cls, root, scope='all'):
+        """Create one restartable enrichment queue from the newest inventory snapshots."""
+        if scope not in ('all', 'missing_images', 'incomplete'):
+            raise ValueError('Неизвестный режим обогащения товаров')
+        for path in (Path(root) / 'jobs').glob('*.sqlite3'):
+            try:
+                current = cls(root, path.stem).info()
+            except (FileNotFoundError, ValueError, sqlite3.Error):
+                continue
+            if (current.get('inventory_scope') and
+                    current['state'] not in ('COMPLETED', 'FAILED', 'STOPPED')):
+                raise ValueError('Общая очередь обогащения уже запущена: ' + current['id'])
+        require_space(root, 512 * MIB)
+        child = cls.create(root, None)
+        config = {'source': 'enrichment', 'enrichment': 'directory', 'start_url': '',
+                  'snapshot_ready': False, 'inventory_scope': scope,
+                  'photo_policy': 'official'}
+        with child.db() as db:
+            db.execute('UPDATE config SET value=?', (json.dumps(config),))
+            db.execute('DELETE FROM pages')
+            db.execute('CREATE TABLE inputs (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            db.execute('''CREATE TABLE inventory_candidates (
+                id TEXT PRIMARY KEY, payload TEXT NOT NULL, collected_at TEXT NOT NULL,
+                batch_id TEXT NOT NULL)''')
+        return child
+
     def snapshot(self, config, callback):
         """Copy large input queues in restartable chunks inside the worker."""
         if config.get('snapshot_ready', True):
             return
+        if config.get('inventory_scope'):
+            return self.snapshot_inventory(config, callback)
         parent = Job(self.root, config['parent_id'])
         batch = Batch(self.root, parent.id)
         with worker_lock(batch.path.with_suffix('.maintenance.lock')), worker_lock(parent.path.with_suffix('.lock')):
@@ -207,6 +236,94 @@ class Job:
             config['snapshot_ready'] = True
             with self.db() as db:
                 db.execute('UPDATE config SET value=?', (json.dumps(config),))
+
+    def snapshot_inventory(self, config, callback):
+        """Select the newest copy of every inventory identity without changing old batches."""
+        from .materials import coverage
+        from .eltex import Stopped
+        paths = sorted((self.root / 'batches').glob('*.sqlite3'))
+        # The output batch was created with this job and is empty during snapshotting.
+        paths = [path for path in paths if path.stem != self.id]
+        index = int(config.get('snapshot_batch_index', 0))
+        cursor = config.get('snapshot_record_cursor', '')
+        while index < len(paths):
+            if self.stopped():
+                raise Stopped()
+            path = paths[index]
+            try:
+                source = Batch(self.root, path.stem)
+                with source.connection() as db:
+                    rows = list(db.execute(
+                        'SELECT record_id,payload,collected_at FROM records '
+                        'WHERE record_id>? ORDER BY record_id LIMIT 500', (cursor,)))
+            except FileNotFoundError:
+                rows = []
+            if rows:
+                with self.db() as db:
+                    for row in rows:
+                        db.execute('''INSERT INTO inventory_candidates VALUES (?,?,?,?)
+                            ON CONFLICT(id) DO UPDATE SET
+                              payload=excluded.payload,collected_at=excluded.collected_at,
+                              batch_id=excluded.batch_id
+                            WHERE (excluded.collected_at,excluded.batch_id) >
+                                  (inventory_candidates.collected_at,inventory_candidates.batch_id)''',
+                                   (row['record_id'], row['payload'], row['collected_at'], path.stem))
+                    cursor = rows[-1]['record_id']
+                    config['snapshot_batch_index'] = index
+                    config['snapshot_record_cursor'] = cursor
+                    db.execute('UPDATE config SET value=?', (json.dumps(config),))
+                    copied = db.execute('SELECT count(*) FROM inventory_candidates').fetchone()[0]
+                self.event('snapshot', {'copied': copied, 'batch': index + 1,
+                                        'batches': len(paths)}, callback)
+                continue
+            index += 1
+            cursor = ''
+            config['snapshot_batch_index'] = index
+            config['snapshot_record_cursor'] = cursor
+            with self.db() as db:
+                db.execute('UPDATE config SET value=?', (json.dumps(config),))
+
+        transfer = config.get('snapshot_transfer_cursor', '')
+        scope = config['inventory_scope']
+        while True:
+            if self.stopped():
+                raise Stopped()
+            with self.db() as db:
+                rows = list(db.execute(
+                    'SELECT id,payload FROM inventory_candidates WHERE id>? ORDER BY id LIMIT 500',
+                    (transfer,)))
+            if not rows:
+                break
+            with self.db() as db:
+                added = 0
+                for row in rows:
+                    product = json.loads(row['payload'])
+                    state = coverage(product)
+                    include = (scope == 'all' or
+                               scope == 'missing_images' and not state['fields']['images'] or
+                               scope == 'incomplete' and bool(state['missing']))
+                    if include:
+                        db.execute('INSERT OR IGNORE INTO inputs VALUES (?,?)',
+                                   (row['id'], row['payload']))
+                        inserted = db.execute('INSERT OR IGNORE INTO items(url) VALUES (?)',
+                                              (row['id'],)).rowcount
+                        increment(db, 'discovered', inserted)
+                        added += inserted
+                transfer = rows[-1]['id']
+                config['snapshot_transfer_cursor'] = transfer
+                db.execute('UPDATE config SET value=?', (json.dumps(config),))
+            self.event('snapshot_queue', {'queued': self.info()['discovered'],
+                                          'scanned': transfer, 'added': added}, callback)
+
+        with self.db() as db:
+            total = counters(db).get('discovered', 0)
+            config['snapshot_ready'] = True
+            for key in ('snapshot_batch_index', 'snapshot_record_cursor', 'snapshot_transfer_cursor'):
+                config.pop(key, None)
+            db.execute('UPDATE job SET target=?,updated_at=?', (total, utc_now()))
+            db.execute('UPDATE config SET value=?', (json.dumps(config),))
+            db.execute('DROP TABLE inventory_candidates')
+        self.event('snapshot_ready', {'queued': total, 'scope': scope}, callback)
 
     def info(self):
         with self.db() as db:
@@ -441,7 +558,10 @@ class Job:
                                         record = enricher.enrich(original)
                                         from .photos import select as select_photos
                                         record = select_photos(record, config.get('photo_policy', 'official'), original.get('original_record', original))
-                                        record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
+                                        if config.get('parent_id'):
+                                            record.setdefault('provenance', {})['parent_batch_id'] = config['parent_id']
+                                        elif config.get('inventory_scope'):
+                                            record.setdefault('provenance', {})['inventory_enrichment'] = config['inventory_scope']
                                         self.event('enrichment', {'url': original['source_url'], **record['enrichment']}, callback)
                                     else:
                                         html = client.get(item[0])

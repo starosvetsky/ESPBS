@@ -424,6 +424,25 @@ class APITests(unittest.TestCase):
         self.assertEqual(child['parent_id'],parent.id)
         launch.assert_called_once()
 
+    @patch('espbs.api.launch_worker')
+    def test_global_inventory_enrichment_api(self, launch):
+        batch=Batch.create(self.temp.name);batch.add(record(1))
+        status, job=self.request('/api/inventory/enrichment','POST',{'scope':'all'})
+        self.assertEqual(status,202)
+        self.assertEqual(job['inventory_scope'],'all')
+        _, latest=self.request('/api/inventory/enrichment')
+        self.assertEqual(latest['job']['id'],job['id'])
+        with self.assertRaises(HTTPError) as error:
+            self.request('/api/inventory/enrichment','POST',{'scope':'all'})
+        self.assertEqual(error.exception.code,400)
+        launch.assert_called_once_with(self.server.root,job['id'])
+
+    def test_inventory_page_has_official_materials_control(self):
+        with urlopen(self.base + '/inventory', timeout=3) as response:
+            page=response.read().decode()
+        self.assertIn('Запустить поиск материалов',page)
+        self.assertIn('Все уникальные товары',page)
+
 
 if __name__ == '__main__':
     unittest.main()

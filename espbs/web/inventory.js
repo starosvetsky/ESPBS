@@ -5,6 +5,7 @@ const display = value => typeof value === 'object' ? JSON.stringify(value,null,2
 const date = value => value ? new Date(value).toLocaleString('ru-RU') : '—';
 let cursors=[''], page=0, result=null, busy=false, activeBatch='', activeQuery='';
 async function api(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw new Error(`Не удалось прочитать хранилище (${response.status}). Проверьте подключение и вход в панель.`);return response.json();}
+async function post(path,body){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||`Ошибка сервера (${response.status})`);return data;}
 function link(label,url,parent){try{const parsed=new URL(url);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)return;const a=text('a',label);a.href=parsed.href;a.target='_blank';a.rel='noopener noreferrer';parent.append(a);}catch{}}
 function showCard(item){
   const p=item.product, content=$('#card-content');content.replaceChildren();
@@ -41,9 +42,20 @@ async function refresh(){
   try{const data=await api('api/inventory/batches');const selected=$('#batch').value;$('#batch').replaceChildren(new Option('Все партии',''));for(const batch of data.batches){$('#batch').add(new Option(`${date(batch.created_at)} · записей: ${batch.record_count} · ${batch.id.slice(0,8)}`,batch.id));}if(data.batches.some(b=>b.id===selected))$('#batch').value=selected;$('#totals').textContent=`Записей: ${data.record_count.toLocaleString('ru-RU')} · Партий: ${data.batches.length}`;activeBatch=$('#batch').value;activeQuery=$('#query').value.trim();page=0;cursors=[''];await load();}
   catch(error){$('#totals').textContent='Хранилище недоступно';$('#status').textContent=error.message;busy=false;controls();}
 }
+const enrichmentStates={READY:'готовится',RUNNING:'выполняется',STOPPED:'остановлена',COMPLETED:'завершена',FAILED:'завершилась с ошибкой',PAUSED_DISK:'приостановлена: мало места'};
+async function loadEnrichment(){
+  try{const data=await api('api/inventory/enrichment');const job=data.job,button=$('#start-enrichment');
+    if(!job){$('#enrichment-status').textContent='Общая очередь ещё не запускалась.';button.disabled=false;return;}
+    const active=['READY','RUNNING','STOPPING','PAUSED_DISK'].includes(job.state);button.disabled=active;
+    const scope={all:'все товары',missing_images:'товары без фотографий',incomplete:'неполные карточки'}[job.inventory_scope]||job.inventory_scope;
+    $('#enrichment-status').textContent=`Последняя очередь: ${enrichmentStates[job.state]||job.state}. Режим: ${scope}. Обработано ${Number(job.completed||0).toLocaleString('ru-RU')} из ${job.target==null?'подготавливаемой очереди':Number(job.target).toLocaleString('ru-RU')}.${job.error?' '+job.error:''}`;
+  }catch(error){$('#enrichment-status').textContent=error.message;$('#start-enrichment').disabled=true;}
+}
+$('#start-enrichment').onclick=async()=>{const button=$('#start-enrichment');button.disabled=true;try{const job=await post('api/inventory/enrichment',{scope:$('#enrichment-scope').value});$('#enrichment-status').textContent=`Очередь ${job.id.slice(0,8)} создана. Формируется список товаров…`;await loadEnrichment();}catch(error){$('#enrichment-status').textContent=error.message;button.disabled=false;}};
 $('#filters').onsubmit=event=>{event.preventDefault();activeBatch=$('#batch').value;activeQuery=$('#query').value.trim();page=0;cursors=[''];load();};
 $('#reload').onclick=refresh;
 $('#prev').onclick=()=>{if(!busy&&page>0){page--;load();}};
 $('#next').onclick=()=>{if(!busy&&result?.has_more){cursors[++page]=result.next_cursor;load();}};
 $('#close').onclick=()=>$('#card').close();
 refresh();
+loadEnrichment();setInterval(loadEnrichment,5000);

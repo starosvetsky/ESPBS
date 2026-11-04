@@ -127,6 +127,27 @@ class DirectoryTests(unittest.TestCase):
         self.assertIn('enrichment_unneeded',[event['kind'] for event in events])
         launch.assert_not_called()
 
+    def test_inventory_enrichment_uses_newest_unique_snapshot(self):
+        older=Batch.create(self.root);first=record('Alpha','X-1');first['description']='old';older.add(first)
+        newer=Batch.create(self.root);latest=record('Alpha','X-1');latest['description']='new';newer.add(latest)
+        job=Job.create_inventory_enrichment(self.root,'all')
+        result=job.run()
+        self.assertEqual(result['state'],'COMPLETED')
+        self.assertEqual(result['target'],1)
+        self.assertEqual(result['completed'],1)
+        saved=Batch(self.root,job.id).products('',1)[0]['product']
+        self.assertEqual(saved['original_record']['description'],'new')
+        self.assertEqual(saved['provenance']['inventory_enrichment'],'all')
+
+    def test_inventory_enrichment_can_limit_queue_to_missing_images(self):
+        batch=Batch.create(self.root)
+        with_photo=record('Alpha','X-1');with_photo['images']=['https://alpha.example/x.jpg'];batch.add(with_photo)
+        batch.add(record('Beta','X-2'))
+        job=Job.create_inventory_enrichment(self.root,'missing_images')
+        result=job.run()
+        self.assertEqual(result['target'],1)
+        self.assertEqual(result['completed'],1)
+
     def test_large_snapshot_is_background_and_blocks_early_cleanup(self):
         parent=Job.create(self.root,101)
         batch=Batch(self.root,parent.id)
