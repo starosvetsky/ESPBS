@@ -191,7 +191,9 @@ class Job:
         child = cls.create(root, None)
         config = {'source': 'enrichment', 'enrichment': 'directory', 'start_url': '',
                   'snapshot_ready': False, 'inventory_scope': scope,
-                  'photo_policy': 'official'}
+                  # Prefer a confirmed official image, but never erase an existing
+                  # permitted image merely because a manufacturer cannot be matched.
+                  'photo_policy': 'fallback'}
         with child.db() as db:
             db.execute('UPDATE config SET value=?', (json.dumps(config),))
             db.execute('DELETE FROM pages')
@@ -240,6 +242,7 @@ class Job:
     def snapshot_inventory(self, config, callback):
         """Select the newest copy of every inventory identity without changing old batches."""
         from .materials import coverage
+        from .photos import forbidden
         from .eltex import Stopped
         paths = sorted((self.root / 'batches').glob('*.sqlite3'))
         # The output batch was created with this job and is empty during snapshotting.
@@ -299,8 +302,10 @@ class Job:
                 for row in rows:
                     product = json.loads(row['payload'])
                     state = coverage(product)
+                    visible_images = any(isinstance(url, str) and not forbidden(url)
+                                         for url in product.get('images', []))
                     include = (scope == 'all' or
-                               scope == 'missing_images' and not state['fields']['images'] or
+                               scope == 'missing_images' and not visible_images or
                                scope == 'incomplete' and bool(state['missing']))
                     if include:
                         db.execute('INSERT OR IGNORE INTO inputs VALUES (?,?)',

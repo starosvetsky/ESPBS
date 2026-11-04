@@ -148,6 +148,13 @@ class DirectoryTests(unittest.TestCase):
         self.assertEqual(result['target'],1)
         self.assertEqual(result['completed'],1)
 
+    def test_inventory_enrichment_preserves_permitted_photo_on_failed_match(self):
+        batch=Batch.create(self.root);item=record('Unknown maker','X-1')
+        item['images']=['https://shop.example/photo.jpg'];batch.add(item)
+        job=Job.create_inventory_enrichment(self.root,'all');job.run()
+        saved=Batch(self.root,job.id).products('',1)[0]['product']
+        self.assertEqual(saved['images'],['https://shop.example/photo.jpg'])
+
     def test_large_snapshot_is_background_and_blocks_early_cleanup(self):
         parent=Job.create(self.root,101)
         batch=Batch(self.root,parent.id)
