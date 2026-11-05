@@ -1,0 +1,8 @@
+[Unit]
+Description=Refresh the Energostor catalog every 30 minutes
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=30min
+Unit=energostor-catalog-refresh.service
+[Install]
+WantedBy=timers.target

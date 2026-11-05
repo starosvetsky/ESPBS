@@ -1,0 +1,20 @@
+[Unit]
+Description=Refresh the derived Energostor catalog from parser batches
+After=energostor-catalog.service
+[Service]
+Type=oneshot
+User=espbs
+Group=espbs
+WorkingDirectory=/opt/energostor-catalog
+ExecStart=/bin/sh /opt/energostor-catalog/refresh.sh
+ExecStartPost=+/usr/bin/systemctl restart energostor-catalog.service
+TimeoutStartSec=10min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# SQLite mode=ro never writes batch data; WAL readers need shared-memory locks.
+ReadWritePaths=/var/lib/energostor-catalog /var/lib/espbs/batches
+MemoryMax=1536M
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,11 @@
+@import url("assets/fonts/medeo/fonts.css");
+:root {
+  --bs-primary: #0b54a0;
+  --bs-primary-rgb: 11, 84, 160;
+  --bs-link-color: #0b54a0;
+  --bs-link-color-rgb: 11, 84, 160;
+}
+body { font-family: "Medeo Sans", Arial, sans-serif; color: #19222b; }
+#top { background: #f3f6f9; }
+#menu { background: #0b54a0; border-color: #0b54a0; }
+.btn-primary { --bs-btn-bg: #0b54a0; --bs-btn-border-color: #0b54a0; }

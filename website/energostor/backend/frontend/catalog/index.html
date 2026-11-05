@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Каталог оборудования — ЭНЕРГОСТОР</title>
+<meta name="description" content="Общий каталог сохранённых товаров Энергостора: разделы, бренды, характеристики и документы. Цена и сроки поставки — по запросу.">
+<meta name="robots" content="noindex,follow">
+<link rel="icon" href="../assets/img/favicon.ico">
+<link rel="stylesheet" href="../assets/catalog/catalog.css">
+</head>
+<body>
+<a class="skip-link" href="#catalog">Перейти к товарам</a>
+
+<header class="site-head">
+  <div class="wrap site-head__row">
+    <a class="logo" href="../" aria-label="ЭНЕРГОСТОР — на главную">
+      <img src="../assets/img/logo.svg" alt="ЭНЕРГОСТОР" width="176" height="26" onerror="this.parentNode.classList.add('logo--text');this.remove();">
+    </a>
+    <nav class="head-nav" aria-label="Основная навигация">
+      <div data-catalog-menu></div>
+      <a href="../brands/">По брендам</a>
+    </nav>
+    <a class="head-phone" href="tel:+78122009340">+7 (812) 200-93-40</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Хлебные крошки">
+      <a href="../">Главная</a><span aria-hidden="true">/</span><span aria-current="page">Каталог</span>
+    </nav>
+
+    <div class="page-head">
+      <h1>Каталог оборудования</h1>
+      <p>Сохранённые позиции серверного каталога: низковольтное оборудование, автоматизация, кабель, освещение и комплектующие. Цена и сроки — по запросу.</p>
+      <div class="stats" id="page-stats" hidden></div>
+    </div>
+
+    <div class="layout">
+      <button class="filters-toggle" type="button" id="filters-toggle" aria-expanded="true" aria-controls="filters">
+        Разделы и фильтры <span class="filters-toggle__chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <aside class="filters" id="filters" aria-label="Фильтры каталога">
+        <div class="filter-block">
+          <p class="filter-title" id="sections-title">Разделы</p>
+          <div class="cat-tree" id="category-tree" aria-labelledby="sections-title"></div>
+        </div>
+
+        <div class="filter-block filter-block--brands">
+          <p class="filter-title" id="brands-title">Бренд</p>
+          <label class="visually-hidden" for="brands-filter" hidden>Найти бренд</label>
+          <input class="brands-filter" id="brands-filter" type="search" placeholder="Найти бренд" autocomplete="off">
+          <div class="brands-list" id="brands-list" aria-labelledby="brands-title"></div>
+        </div>
+
+        <div class="filter-block">
+          <button class="filters__reset" type="button" id="reset">Сбросить фильтры</button>
+        </div>
+      </aside>
+
+      <section id="catalog" aria-label="Товары каталога">
+        <form class="search" id="search-form" role="search">
+          <input id="query" type="search" name="q" placeholder="Название, артикул или бренд" autocomplete="off" aria-label="Поиск по каталогу">
+          <button type="submit">Найти</button>
+        </form>
+
+        <div class="toolbar">
+          <p class="result-count" id="count" aria-live="polite">Загрузка…</p>
+          <label class="visually-hidden" for="sort" hidden>Сортировка</label>
+          <select id="sort" aria-label="Сортировка">
+            <option value="name">По названию</option>
+            <option value="brand">По бренду</option>
+            <option value="new">Сначала новые</option>
+          </select>
+        </div>
+
+        <div class="chips" id="chips"></div>
+
+        <div id="results" aria-busy="true">
+          <div class="skeleton-grid" id="skeletons" aria-hidden="true">
+            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+          </div>
+          <div class="grid" id="grid" hidden></div>
+          <div class="state" id="state" hidden></div>
+        </div>
+
+        <nav class="pager" id="pager" aria-label="Страницы каталога"></nav>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>© <span id="year">2026</span> ООО «ЭНЕРГОСТОР»</span>
+    <span><a href="tel:+78122009340">+7 (812) 200-93-40</a> · <a href="mailto:info@energostor.ru">info@energostor.ru</a></span>
+    <span><a href="../">Главная</a> · <a href="../brands/">По брендам</a></span>
+  </div>
+</footer>
+
+<dialog class="dialog" id="card-dialog" aria-labelledby="card-title">
+  <div class="dialog__inner">
+    <button class="dialog__close" type="button" id="card-close" aria-label="Закрыть карточку">×</button>
+    <div id="card-body"></div>
+  </div>
+</dialog>
+
+<script src="../assets/catalog/config.js"></script>
+<script src="../assets/catalog/api.js"></script>
+<script src="../assets/catalog/menu.js"></script>
+<script src="../assets/catalog/catalog-page.js"></script>
+</body>
+</html>
+

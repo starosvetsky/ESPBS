@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>По брендам — каталог ЭНЕРГОСТОР</title>
+<meta name="description" content="Бренды, товары которых есть в каталоге Энергостора: выберите производителя и перейдите к его позициям.">
+<meta name="robots" content="noindex,follow">
+<link rel="icon" href="../assets/img/favicon.ico">
+<link rel="stylesheet" href="../assets/catalog/catalog.css">
+</head>
+<body>
+<a class="skip-link" href="#brands">Перейти к брендам</a>
+
+<header class="site-head">
+  <div class="wrap site-head__row">
+    <a class="logo" href="../" aria-label="ЭНЕРГОСТОР — на главную">
+      <img src="../assets/img/logo.svg" alt="ЭНЕРГОСТОР" width="176" height="26" onerror="this.parentNode.classList.add('logo--text');this.remove();">
+    </a>
+    <nav class="head-nav" aria-label="Основная навигация">
+      <div data-catalog-menu></div>
+      <a href="../brands/" aria-current="page">По брендам</a>
+    </nav>
+    <a class="head-phone" href="tel:+78122009340">+7 (812) 200-93-40</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Хлебные крошки">
+      <a href="../">Главная</a><span aria-hidden="true">/</span><a href="../catalog/">Каталог</a><span aria-hidden="true">/</span><span aria-current="page">По брендам</span>
+    </nav>
+
+    <div class="page-head">
+      <h1>По брендам</h1>
+      <p>Здесь перечислены только те производители, товары которых действительно сохранены в каталоге. Выберите бренд, чтобы увидеть его позиции.</p>
+    </div>
+
+    <div class="brand-search">
+      <form class="search" id="brand-form" role="search">
+        <input id="brand-query" type="search" placeholder="Название бренда" autocomplete="off" aria-label="Поиск по брендам">
+        <button type="submit">Найти</button>
+      </form>
+    </div>
+
+    <div id="brands" aria-live="polite">
+      <div class="state" id="brand-state">Загрузка брендов…</div>
+      <nav class="alpha" id="alpha" aria-label="Алфавитный указатель" hidden></nav>
+      <div id="brand-groups"></div>
+    </div>
+
+    <p class="note">
+      Список отражает наличие товаров в сохранённом каталоге и не является перечнем официальных партнёров.
+      Отдельный реестр вендоров проекта ведётся на странице <a href="../vendors/">«Вендоры»</a>.
+    </p>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>© <span id="year">2026</span> ООО «ЭНЕРГОСТОР»</span>
+    <span><a href="tel:+78122009340">+7 (812) 200-93-40</a> · <a href="mailto:info@energostor.ru">info@energostor.ru</a></span>
+    <span><a href="../catalog/">Каталог</a> · <a href="../">Главная</a></span>
+  </div>
+</footer>
+
+<script src="../assets/catalog/config.js"></script>
+<script src="../assets/catalog/api.js"></script>
+<script src="../assets/catalog/menu.js"></script>
+<script src="../assets/catalog/brands-page.js"></script>
+</body>
+</html>
+

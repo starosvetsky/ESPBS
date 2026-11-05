@@ -1,0 +1,7 @@
+@font-face{font-family:"Medeo Sans";src:url("MedeoSansVariable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+@font-face{font-family:"Medeo Sans";src:url("MedeoSansVariable-Italic.woff2") format("woff2");font-style:italic;font-weight:100 900;font-display:swap}
+@font-face{font-family:"Medeo Mono";src:url("MedeoMonoVariable.woff2") format("woff2");font-style:normal;font-weight:100 900;font-display:swap}
+@font-face{font-family:"Medeo Mono";src:url("MedeoMonoVariable-Italic.woff2") format("woff2");font-style:italic;font-weight:100 900;font-display:swap}
+:root{--sans:"Medeo Sans",sans-serif;--mono:"Medeo Mono",monospace;font-family:var(--sans);font-optical-sizing:auto}
+button,input,select,textarea{font-family:inherit}
+code,pre,kbd,samp{font-family:var(--mono)}

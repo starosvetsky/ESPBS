@@ -1,0 +1,18 @@
+@import url("../fonts/medeo/fonts.css");
+@font-face{font-family:'Architexture';src:url('../fonts/architexture-regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neutral Face';src:url('../fonts/neutral-face-regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+:root{--font:"Medeo Sans",Arial,sans-serif;--heading-font:"Medeo Sans",Arial,sans-serif}
+body,input,textarea,select,button{font-family:var(--font);letter-spacing:normal}
+h1,h2,h3,.stats__num,.hero-proof__number{font-family:var(--heading-font);letter-spacing:normal}
+*,*::before,*::after{letter-spacing:normal!important}
+
+/* Medeo is the primary face for headings and body copy. */
+body,input,textarea,select,button{font-weight:400}
+h1,h2,h3,.stats__num,.hero-proof__number{font-weight:500}
+
+/* Medium is the maximum weight. Neutral Face supplies Regular only here. */
+html{font-synthesis:none}
+b,strong{font-weight:500}
+
+/* Sentence case needs a typeface with real lowercase glyphs. */
+h1,h2,h3,h4,h5,h6{text-transform:none}
