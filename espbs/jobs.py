@@ -484,6 +484,11 @@ class Job:
                             final_page = getattr(client, 'last_url', None)
                             final_page = final_page if isinstance(final_page, str) else page[0]
                             urls, pages = adapter.listing(html, final_page)
+                            if config['source'] == 'generic':
+                                from . import ekf
+                                if ekf.needs_api(html, final_page):
+                                    urls = list(dict.fromkeys(
+                                        urls + ekf.product_links(final_page, self.root, self.stopped)))
                         except (LowDiskSpace, WaitingForParts, JournalLimitReached, SourceBlocked, Stopped):
                             raise
                         except Exception as exc:

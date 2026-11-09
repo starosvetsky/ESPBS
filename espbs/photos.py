@@ -3,7 +3,8 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 from .universal import objects, public_url
 
-OFFICIAL_HOSTS = {'eltex.ru': 'Eltex', 'dlink.ru': 'D-Link', 'www.qtech.ru': 'QTECH', 'ostec.ru': 'OSTEC'}
+OFFICIAL_HOSTS = {'eltex.ru': 'Eltex', 'dlink.ru': 'D-Link', 'www.qtech.ru': 'QTECH',
+                  'ostec.ru': 'OSTEC', 'ekfgroup.com': 'EKF'}
 IMAGE_HOSTS = {'shop.nag.ru': {'cdn.nag.shop'}}
 
 

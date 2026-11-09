@@ -109,11 +109,31 @@ class Client:
                     child.close()
             return self.get(redirect.url, _redirects + 1, sink=sink, max_bytes=max_bytes)
 
+    def post_json(self, url, value, *, max_bytes=6 * 1024 * 1024):
+        """POST JSON to a public endpoint on this client's verified origin."""
+        url = public_url(url)
+        p = urlsplit(url)
+        if 'https://' + p.netloc != self.origin:
+            raise ValueError('Ссылка выходит за пределы выбранного сайта')
+        if self.rules is None:
+            text = self._request(self.origin + '/robots.txt', robots=True)
+            self.rules = Robots()
+            self.rules.parse(text.splitlines())
+            self.delay = max(2, self.rules.crawl_delay(AGENT) or self.rules.crawl_delay('*') or 0)
+        if not self.rules.can_fetch(AGENT, url):
+            raise ValueError('robots.txt запрещает ' + url)
+        body = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        result = self._request(url, method='POST', body=body,
+                               headers={'Content-Type': 'application/json'}, max_bytes=max_bytes)
+        self.last_url = url
+        return json.loads(result)
+
     def _request(self, url, robots=False, **kwargs):
         with self.traffic.request(url, self.delay, self.stopped):
             return self._request_locked(url, robots, **kwargs)
 
-    def _request_locked(self, url, robots=False, *, sink=None, max_bytes=6 * 1024 * 1024):
+    def _request_locked(self, url, robots=False, *, sink=None, max_bytes=6 * 1024 * 1024,
+                        method='GET', body=None, headers=None):
         while time.monotonic() - self.last_request < self.delay:
             if self.stopped():
                 raise Stopped()
@@ -129,8 +149,10 @@ class Client:
             (addresses[0], 443), timeout, source_address)
         self.last_request = time.monotonic()
         try:
-            conn.request('GET', p.path + ('?' + p.query if p.query else ''),
-                         headers={'User-Agent': AGENT, 'Accept-Encoding': 'identity'})
+            request_headers = {'User-Agent': AGENT, 'Accept-Encoding': 'identity'}
+            request_headers.update(headers or {})
+            conn.request(method, p.path + ('?' + p.query if p.query else ''),
+                         body=body, headers=request_headers)
             response = conn.getresponse()
             self.traffic.response(url, response.status, response.getheader('Retry-After'))
             if robots and response.status == 404:
@@ -250,6 +272,10 @@ class Adapter:
         if not isinstance(offers, dict):
             offers = {}
         brand, mpn = str(field('manufacturer', brand) or ''), str(field('mpn', raw.get('mpn','')) or '')
+        # On EKF's official catalogue the manufacturer's article is published
+        # as schema.org/sku rather than mpn. It is still the exact EKF MPN.
+        if not mpn and urlsplit(url).hostname == 'ekfgroup.com':
+            mpn = str(raw.get('sku') or '')
         issues = [label for value, label in [(brand, 'Нет бренда'), (mpn, 'Нет точного MPN')] if not value]
         if raw.get('_recognition') == 'html-evidence':
             issues.append('Поля определены по структуре HTML; требуется проверка')
@@ -295,7 +321,8 @@ class Adapter:
             links = valid(a.get('href','') for a in soup.select(selector) if a.get('href'))
         from .html_sources import listing as html_listing
         html_links, html_pages = html_listing(soup, url)
-        from .recognition import discover, html_product as inferred_product, itemlist_links, pagination, clean
+        from .recognition import (category_links, discover, html_product as inferred_product,
+                                  itemlist_links, pagination, clean)
         candidates = objects(soup)
         declared = candidates[0].get('url') if len(candidates) == 1 else None
         declared_links = valid([declared]) if isinstance(declared, str) and declared else []
@@ -307,11 +334,12 @@ class Adapter:
         if not links:
             links = valid(html_links)
         if links:
-            html_pages = list(dict.fromkeys(html_pages + pagination(clean(soup), url)))
+            html_pages = list(dict.fromkeys(
+                html_pages + category_links(soup, url) + pagination(clean(soup), url)))
         if not links and not html_pages:
             discovered, extra_pages = discover(soup, url)
             links = valid(discovered) or (declared_links if foreign_card else [])
-            html_pages = extra_pages if links else []
+            html_pages = list(dict.fromkeys(category_links(soup, url) + extra_pages))
         if not links and not html_pages:
             candidates = objects(soup)
             if len(candidates) > 1:

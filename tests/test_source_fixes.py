@@ -9,6 +9,7 @@ from espbs.directory import Directory, detect
 from espbs.jobs import Job
 from espbs.storage import Batch
 from espbs.photos import extract, select
+from espbs import ekf
 
 
 def html(image):
@@ -18,6 +19,27 @@ def html(image):
 
 
 class SourceFixTests(unittest.TestCase):
+    def test_ekf_category_api_adds_all_published_product_links(self):
+        response = {'data': {'categories': [{'products': [
+            {'product': {'slug': 'one'}}, {'product': {'slug': 'two'}}],
+            'productsTotal': {'aggregate': {'count': 2}}}]}}
+        with tempfile.TemporaryDirectory() as root, patch('espbs.ekf.Client') as client:
+                client.return_value.post_json.return_value = response
+                self.assertEqual(ekf.product_links(
+                    'https://ekfgroup.com/ru/catalog/telekommunikaciya', root), [
+                        'https://ekfgroup.com/ru/catalog/products/one',
+                        'https://ekfgroup.com/ru/catalog/products/two'])
+
+    def test_ekf_official_sku_is_exact_mpn(self):
+        payload = {'@type': 'Product', 'name': 'Patch panel', 'brand': 'EKF',
+                   'sku': 'TRP-1', 'additionalProperty': [
+                       {'name': 'Ports', 'value': '12'}]}
+        product = Adapter().product(
+            '<script type="application/ld+json">' + json.dumps(payload) + '</script>',
+            'https://ekfgroup.com/ru/catalog/products/patch-panel')
+        self.assertEqual(product['mpn'], 'TRP-1')
+        self.assertEqual(product['quality']['status'], 'GOOD')
+
     def test_olnisa_query_pages_do_not_hide_available_categories(self):
         from espbs import olnisa
         page = '<ul class="cat-menu"><li><a href="/manufacturers/dkc/cables/">Cables</a></li></ul><a class="page_link" href="/manufacturers/dkc/page-2/?filter=1">2</a>'

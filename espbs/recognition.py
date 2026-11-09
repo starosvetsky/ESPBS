@@ -212,6 +212,34 @@ def pagination(soup, url):
     return list(dict.fromkeys(result))[:1000]
 
 
+def category_links(soup, url):
+    """Return explicit child-category links from the page content.
+
+    Global catalogue menus are deliberately excluded by ``clean``.  This only
+    accepts containers whose own class identifies them as a category children
+    collection, so a crawl can follow a catalogue tree without wandering into
+    neighbouring top-level departments.
+    """
+    scope = clean(soup)
+    containers = []
+    for node in scope.select('[class]'):
+        classes = ' '.join(node.get('class', [])).casefold()
+        if ('category' in classes or 'catalog' in classes) and any(
+                marker in classes for marker in ('children', 'child-list', 'subcategor', 'sub-categor')):
+            containers.append(node)
+    # Keep the smallest matching containers: wrappers often contain the same
+    # list and would otherwise duplicate every link.
+    containers = [node for node in containers if not any(
+        other is not node and node in other.parents for other in containers)]
+    result = []
+    for container in containers:
+        for anchor in container.select('a[href]'):
+            target = link(anchor.get('href'), url)
+            if target and target not in result:
+                result.append(target)
+    return result[:10_000]
+
+
 def discover(soup, url):
     structured = itemlist_links(soup, url)
     scope = clean(soup)

@@ -107,3 +107,19 @@ class RecognitionTests(unittest.TestCase):
         html = '<h1>News</h1><section><article><a href="/news/1">Report</a></article><article><a href="/news/2">Story</a></article></section>'
         with self.assertRaises(ValueError):
             self.adapter.listing(html, self.url)
+
+    def test_content_child_categories_are_crawled_but_global_menu_is_not(self):
+        html = '''
+        <header><ul class="category-children-list"><li><a href="/catalog/wrong">Wrong</a></li></ul></header>
+        <main>
+          <section><ul class="category-children-list">
+            <li><a href="/catalog/switches">Switches</a></li>
+            <li><a href="/catalog/cables">Cables</a></li>
+          </ul></section>
+          <div class="product-card"><img src="/one.jpg"><a href="/products/one">One</a></div>
+          <div class="product-card"><img src="/two.jpg"><a href="/products/two">Two</a></div>
+        </main>'''
+        links, pages = self.adapter.listing(html, self.url)
+        self.assertEqual(links, ['https://example.org/products/one', 'https://example.org/products/two'])
+        self.assertEqual(pages, ['https://example.org/catalog/switches',
+                                 'https://example.org/catalog/cables'])
