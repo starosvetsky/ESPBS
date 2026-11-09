@@ -99,7 +99,9 @@ class FrontendTestCase(unittest.TestCase):
             html = page.read_text(encoding="utf-8")
             self.assertIn("data-catalog-menu", html)
             self.assertIn("menu.js", html)
-            self.assertIn("'/energostor/api/catalog'", (ASSETS / "api.js").read_text(encoding="utf-8"))
+            api_source = (ASSETS / "api.js").read_text(encoding="utf-8")
+            self.assertIn("'/energostor/api/catalog'", api_source)
+            self.assertIn("'/api/catalog'", api_source)
 
     def test_brands_page_links_to_catalog_with_brand_filter(self):
         text = (ASSETS / "brands-page.js").read_text(encoding="utf-8")

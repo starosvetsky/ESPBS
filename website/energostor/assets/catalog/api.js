@@ -13,7 +13,7 @@
     var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
     var underSite = location.pathname.indexOf('/energostor/') === 0;
     if (local && !underSite) return (config.localApi || 'http://127.0.0.1:8766').replace(/\/+$/, '');
-    return '/energostor/api/catalog';
+    return underSite ? '/energostor/api/catalog' : '/api/catalog';
   }
 
   function qs(params) {
