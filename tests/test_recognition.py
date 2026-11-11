@@ -115,6 +115,27 @@ class RecognitionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Структура страницы'):
                 self.adapter.listing(fragment, self.url)
 
+    def test_seller_identity_and_ui_noise_are_normalized(self):
+        html = '''<main><h1>Розетка IEK</h1>
+        <div><span>Артикул</span><span>PR-KK40D</span></div>
+        <div><span>Характеристики</span><span>Код товара — 123 Производитель — IEK Базовая единица — шт</span></div>
+        <div><span>Отложить</span><span>В отложенных</span></div>
+        <div><span>Материал</span><span>ПВХ</span></div></main>'''
+        product = self.adapter.product(html, self.url + 'product/1')
+        self.assertEqual(product['manufacturer'], 'IEK')
+        self.assertEqual(product['sku'], 'PR-KK40D')
+        self.assertNotIn('Отложить', product['attributes'])
+        self.assertEqual(product['attributes']['Материал'], ['ПВХ'])
+
+    def test_labeled_manufacturer_and_article_in_key_are_normalized(self):
+        html = '''<main><h1>3SX1701</h1>
+        <div><span>Производитель</span><span>SIEMENS</span></div>
+        <div><span>Артикул 3SX1701</span><span>Наименование: 3SX1701</span></div>
+        <div><span>Количество в упаковке</span><span>10</span></div></main>'''
+        product = self.adapter.product(html, self.url + 'product/2')
+        self.assertEqual(product['manufacturer'], 'SIEMENS')
+        self.assertEqual(product['sku'], '3SX1701')
+
     def test_primary_card_ignores_recommendations(self):
         primary = ld({'@type': 'Product', 'name': 'Primary', 'mpn': 'P'})
         related = ''.join(f'<div class="product-card"><a href="/p/{i}">Other</a>100 руб.</div>' for i in (2, 3))

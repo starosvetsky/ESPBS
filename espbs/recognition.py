@@ -105,6 +105,10 @@ def complete(raw, scope, method):
         if not raw.get(name):
             matches = {labels[label] for label in aliases if labels.get(label)}
             raw[name] = matches.pop() if len(matches) == 1 else ''
+    if not raw.get('sku'):
+        embedded = {match.group(1).strip() for key, _ in attributes
+                    if (match := re.match(r'^(?:артикул|sku|код товара)\s+(.+)$', key, re.I))}
+        raw['sku'] = embedded.pop() if len(embedded) == 1 else ''
     raw['additionalProperty'] = [{'name': key, 'value': val} for key, val in attributes]
     raw['offers'] = {key: field(scope, key) for key in ('price', 'priceCurrency', 'availability')}
     raw['_recognition'] = method

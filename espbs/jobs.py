@@ -108,6 +108,23 @@ class Job:
         if photo_policy not in ('store', 'official', 'fallback', 'none'):
             raise ValueError('Неизвестный режим фотографий')
         config['photo_policy'] = photo_policy
+        if config.get('source') == 'generic' and config.get('start_url'):
+            from urllib.parse import urlsplit, urlunsplit
+            def comparable(value):
+                parsed = urlsplit(value)
+                return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(),
+                                   parsed.path.rstrip('/'), parsed.query, ''))
+            wanted = comparable(config['start_url'])
+            for current_path in (Path(root) / 'jobs').glob('*.sqlite3'):
+                try:
+                    current = cls(root, current_path.stem).info()
+                except (FileNotFoundError, ValueError, sqlite3.Error):
+                    continue
+                active = (current['state'] in ('RUNNING', 'STOPPING') or
+                          current['state'] == 'READY' and not current.get('stop'))
+                if (active and
+                        current.get('start_url') and comparable(current['start_url']) == wanted):
+                    raise ValueError('Этот каталог уже собирается: ' + current['id'])
         require_space(root, 256 * MIB)
         batch = Batch.create(root)
         directory = Path(root) / 'jobs'

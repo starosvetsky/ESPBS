@@ -193,6 +193,40 @@ class Client:
 
 
 FIELDS = {'name', 'manufacturer', 'mpn', 'description', 'price', 'availability', 'product_links', 'next_links'}
+IDENTITY_PREFIX = re.compile(r'^(?:производитель|бренд|manufacturer|brand)\s*[:—-]\s*', re.I)
+ARTICLE_KEY = re.compile(r'^(?:артикул|sku|код товара)(?:\s*[:—-]\s*|\s+)(\S.*)$', re.I)
+UI_ATTRIBUTE = re.compile(
+    r'^(?:отложить|в отложенных|сравнить|в сравнении|варианты цен|в корзин|'
+    r'в наличии|в избран|поделиться|все товары|доставка|подробности)', re.I)
+
+
+def clean_identity(value):
+    value = str(value or '').strip()
+    return IDENTITY_PREFIX.sub('', value).strip()
+
+
+def identity_from_attributes(attributes):
+    """Recover explicit seller-page identity without guessing from a title."""
+    brand = sku = ''
+    for label, values in attributes.items():
+        text_values = [str(value).strip() for value in values if str(value).strip()]
+        folded = label.strip().casefold().rstrip(' :')
+        if not brand and folded in ('производитель', 'бренд', 'manufacturer', 'brand') and len(text_values) == 1:
+            brand = clean_identity(text_values[0])
+        if not sku and folded in ('артикул', 'sku', 'код товара') and len(text_values) == 1:
+            sku = text_values[0]
+        match = ARTICLE_KEY.match(label.strip())
+        if not sku and match:
+            sku = match.group(1).strip()
+        if not brand:
+            for value in text_values:
+                match = re.search(
+                    r'(?:^|\s)Производитель\s*[—:-]\s*(.+?)'
+                    r'(?=\s+[А-ЯЁ][а-яё]+(?:\s+[а-яё,]+){0,4}\s+—|$)', value)
+                if match:
+                    brand = clean_identity(match.group(1))
+                    break
+    return brand, sku
 
 
 def rules(value):
@@ -271,23 +305,30 @@ class Adapter:
             offers = offers[0] if offers else {}
         if not isinstance(offers, dict):
             offers = {}
-        brand, mpn = str(field('manufacturer', brand) or ''), str(field('mpn', raw.get('mpn','')) or '')
+        brand = clean_identity(field('manufacturer', brand))
+        mpn = str(field('mpn', raw.get('mpn','')) or '').strip()
         # On EKF's official catalogue the manufacturer's article is published
         # as schema.org/sku rather than mpn. It is still the exact EKF MPN.
         if not mpn and urlsplit(url).hostname == 'ekfgroup.com':
             mpn = str(raw.get('sku') or '')
-        issues = [label for value, label in [(brand, 'Нет бренда'), (mpn, 'Нет точного MPN')] if not value]
-        if raw.get('_recognition') == 'html-evidence':
-            issues.append('Поля определены по структуре HTML; требуется проверка')
         from .materials import documents, scope
         from .recognition import pairs
         if not attributes:
             for label, val in pairs(scope(html)):
                 attributes.setdefault(label, []).append(val)
+        inferred_brand, inferred_sku = identity_from_attributes(attributes)
+        if not brand:
+            brand = inferred_brand
+        sku = str(raw.get('sku') or inferred_sku or '').strip()
+        attributes = {label: values for label, values in attributes.items()
+                      if not UI_ATTRIBUTE.search(label.strip())}
+        issues = [label for value, label in [(brand, 'Нет бренда'), (mpn, 'Нет точного MPN')] if not value]
+        if raw.get('_recognition') == 'html-evidence':
+            issues.append('Поля определены по структуре HTML; требуется проверка')
         # Store-side images are deliberately excluded, including nested JSON-LD.
         return {'source': urlsplit(url).hostname, 'source_url': public_url(url), 'external_id': public_url(url),
                 'name': name, 'manufacturer': brand, 'mpn': mpn,
-                'sku': str(raw.get('sku') or ''),
+                'sku': sku,
                 'description': str(field('description', raw.get('description','')) or ''),
                 'attributes': attributes, 'documents': documents(html, url), 'images': [],
                 'offer': {'price_text': str(field('price', offers.get('price',''))),

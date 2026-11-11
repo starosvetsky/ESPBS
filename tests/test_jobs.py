@@ -92,6 +92,20 @@ class JobTests(unittest.TestCase):
         self.assertIsNone(Job.create(self.root, None).info()['target'])
         self.assertEqual(Job.create(self.root, 1_000_001).info()['target'], 1_000_001)
 
+    def test_duplicate_active_catalog_is_rejected(self):
+        config = {'source': 'generic', 'start_url': 'https://shop.example/catalog/',
+                  'enrichment': 'none', 'selectors': {}}
+        with patch('espbs.directory.detect', return_value=config):
+            first = Job.create(self.root, None, source='auto',
+                               start_url='https://shop.example/catalog/')
+            with self.assertRaisesRegex(ValueError, first.id):
+                Job.create(self.root, None, source='auto',
+                           start_url='https://shop.example/catalog')
+            first.stop()
+            second = Job.create(self.root, None, source='auto',
+                                start_url='https://shop.example/catalog')
+        self.assertNotEqual(first.id, second.id)
+
     def test_page_error_retries_then_finishes_without_manual_resume(self):
         job = Job.create(self.root, 1)
         with patch.object(FakeClient, 'get', side_effect=RuntimeError('HTTP 503')):
