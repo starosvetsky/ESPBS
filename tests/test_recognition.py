@@ -41,7 +41,7 @@ class RecognitionTests(unittest.TestCase):
         self.assertEqual(pages, [])
 
     def test_bitrix_catalog_section_items_without_numeric_price(self):
-        html = '<main>' + ''.join(
+        html = '<main class="wrapper compact-breadcrumbs-N">' + ''.join(
             '<div class="catalog-section-item" data-role="item">'
             '<div class="catalog-section-item-image"><img src="/missing.png"></div>'
             f'<div class="catalog-section-item-name"><a href="/catalog/model-{i}/">Model {i}</a></div>'
@@ -49,6 +49,37 @@ class RecognitionTests(unittest.TestCase):
             for i in (1, 2, 3)) + '</main>'
         self.assertEqual(self.adapter.listing(html, self.url)[0], [
             f'https://example.org/catalog/model-{i}/' for i in (1, 2, 3)])
+
+    def test_bitrix_cards_in_separate_layout_wrappers(self):
+        """Bitrix themes may give every marked card a different direct parent."""
+        html = '<main>' + ''.join(
+            '<div class="layout-cell">'
+            '<div class="catalog_item_wrapp catalog_item item_wrap product_image" '
+            f'id="bx_item_{item}">'
+            f'<a href="/catalog/cables/model/{item}/"><img src="/{item}.jpg"></a>'
+            f'<a href="/catalog/cables/model/{item}/">Cable {item}</a>'
+            f'<span class="price">{item} 200 ₽ /шт</span>'
+            '<a href="/basket/">В корзину</a>'
+            '</div></div>' for item in (4374332, 4374333, 4374334))
+        html += '<a href="?PAGEN_1=2">2</a><a href="?PAGEN_1=214">214</a></main>'
+        links, pages = self.adapter.listing(html, self.url)
+        self.assertEqual(links, [
+            f'https://example.org/catalog/cables/model/{item}/'
+            for item in (4374332, 4374333, 4374334)])
+        self.assertEqual(pages, [self.url + '?PAGEN_1=2', self.url + '?PAGEN_1=214'])
+
+    def test_real_breadcrumb_and_recommendation_blocks_are_excluded(self):
+        html = '''
+        <div class="breadcrumbs"><a href="/catalog/wrong">Catalog</a></div>
+        <div class="recommendations"><div class="product-card">
+          <img src="/wrong.jpg"><a href="/product/wrong">Wrong</a><b>100 ₽</b>
+        </div></div>
+        <main>''' + ''.join(
+            f'<div class="product-card"><img src="/{item}.jpg">'
+            f'<a href="/product/{item}">Item {item}</a><b>{item} ₽</b></div>'
+            for item in (1, 2)) + '</main>'
+        self.assertEqual(self.adapter.listing(html, self.url)[0], [
+            'https://example.org/product/1', 'https://example.org/product/2'])
 
     def test_itemlist_without_product_schema_and_breadcrumbs(self):
         html = ld({'@type': 'ItemList', 'itemListElement': [

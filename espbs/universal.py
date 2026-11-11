@@ -319,10 +319,14 @@ class Adapter:
         selector = self.selectors.get('product_links')
         if selector:
             links = valid(a.get('href','') for a in soup.select(selector) if a.get('href'))
-        from .html_sources import listing as html_listing
-        html_links, html_pages = html_listing(soup, url)
         from .recognition import (category_links, discover, html_product as inferred_product,
                                   itemlist_links, pagination, clean)
+        from .html_sources import listing as html_listing
+        # Apply the same navigation/recommendation cleanup before both the
+        # verified-layout recognizer and the generic repeated-card fallback.
+        # Otherwise a recommendation tile may be accepted before the generic
+        # recognizer gets a chance to exclude it.
+        html_links, html_pages = html_listing(clean(soup), url)
         candidates = objects(soup)
         declared = candidates[0].get('url') if len(candidates) == 1 else None
         declared_links = valid([declared]) if isinstance(declared, str) and declared else []

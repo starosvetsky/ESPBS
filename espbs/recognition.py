@@ -8,7 +8,10 @@ from bs4 import BeautifulSoup
 PRICE = re.compile(r'\d[\d\s.,\xa0]*\s*(?:₽|руб\.?|RUB\b|USD\b|EUR\b|€|\$)|[$€]\s*\d', re.I)
 PAGE = re.compile(r'^(?:page|p|paged|page_number|pagen_\d+)$', re.I)
 IGNORED = re.compile(r'cart|basket|checkout|login|compare|wishlist|order-sheet|add2basket', re.I)
-RELATED = re.compile(r'related|recommend|upsell|cross.sell|breadcrumb', re.I)
+RELATED = re.compile(r'(?:^|[-_])(?:related|recommend(?:ed|ation)?s?|upsell|cross[-_]?sell)(?:$|[-_])', re.I)
+BREADCRUMB = re.compile(r'^(?:(?:bx|site)[-_])?breadcrumbs?(?:$|[-_])', re.I)
+PRODUCT_CARD = re.compile(
+    r'product[-_]?(?:item|card)|catalog(?:[-_]section)?[-_]item', re.I)
 
 
 def clean(soup):
@@ -16,7 +19,10 @@ def clean(soup):
     for node in result.select('script, style, nav, footer, header, aside, form, [role="navigation"], [itemprop="aggregateRating"], [itemprop="review"]'):
         if node.parent is not None:
             node.decompose()
-    for node in list(result.find_all(class_=RELATED)):
+    def auxiliary(node):
+        classes = node.get('class', [])
+        return any(RELATED.search(name) or BREADCRUMB.search(name) for name in classes)
+    for node in list(result.find_all(auxiliary)):
         if node.parent is not None:
             node.decompose()
     return result
@@ -131,6 +137,14 @@ def repeated_links(scope, url):
     for node in scope.select('tr, li, article, div')[:20000]:
         if node.parent is not None:
             groups[(id(node.parent), node.name, tuple(sorted(node.get('class', []))))].append(node)
+        # Some Bitrix themes wrap every card in its own layout container.  In
+        # that case sibling-only grouping cannot see the repeated collection,
+        # although the cards themselves carry the same explicit product class.
+        # Keep a second, page-wide group only for explicitly marked cards;
+        # price/image evidence below still has to confirm every accepted row.
+        classes = tuple(sorted(node.get('class', [])))
+        if classes and PRODUCT_CARD.search(' '.join(classes)):
+            groups[('marked-card', node.name, classes)].append(node)
     candidates = []
     for nodes in groups.values():
         if len(nodes) < 2:
@@ -142,9 +156,8 @@ def repeated_links(scope, url):
                              re.search(r'наименование|название|товар|\bname\b|\bproduct\b', heading))
         for node in nodes:
             text = node.get_text(' ', strip=True)
-            marked = bool(node.get('data-product-id') or re.search(
-                r'product[-_]?(?:item|card)|catalog(?:[-_]section)?[-_]item',
-                ' '.join(node.get('class', [])), re.I))
+            marked = bool(node.get('data-product-id') or PRODUCT_CARD.search(
+                ' '.join(node.get('class', []))))
             if len(text) > 2000 or not (PRICE.search(text) or node.select_one('[itemprop~="price"]') or product_table or marked and node.select_one('img')):
                 continue
             anchors = node.select('a[href]')
