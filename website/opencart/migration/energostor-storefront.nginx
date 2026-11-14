@@ -1,0 +1,25 @@
+root /opt/energostor-next/upload;
+index index.php;
+
+location ^~ /.well-known/acme-challenge/ {
+    root /var/www/energostor-acme;
+    try_files $uri =404;
+}
+location ~ ^/(?:admin|install|system|storage|extension)(?:/|$) { return 404; }
+location ~ /\. { return 404; }
+location = /energostor-theme/vendors/data.json { try_files $uri =404; }
+location ~* \.(?:css|js|png|jpe?g|webp|svg|ico|woff2?|ttf|gif|xml|txt|pdf)$ { try_files $uri @energostor; }
+location / { try_files /__energostor_route__ @energostor; }
+location = /index.php {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /opt/energostor-next/upload/index.php;
+    fastcgi_param ENERGOSTOR_PREVIEW $energostor_preview;
+    fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+}
+location ~* \.php(?:/|$) { return 404; }
+location @energostor {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /opt/energostor-next/upload/index.php;
+    fastcgi_param ENERGOSTOR_PREVIEW $energostor_preview;
+    fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+}
