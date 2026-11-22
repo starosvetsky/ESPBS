@@ -1,0 +1,7 @@
+<ul class="pagination">
+{% if first %}<li class="page-item"><a href="{{ first|e('html_attr') }}" class="page-link" aria-label="Первая страница">«</a></li>{% endif %}
+{% if prev %}<li class="page-item"><a href="{{ prev|e('html_attr') }}" class="page-link" aria-label="Предыдущая страница">←</a></li>{% endif %}
+{% for link in links %}{% if link.page == page %}<li class="page-item active"><span class="page-link" aria-current="page" aria-label="Страница {{ link.page }}, текущая">{{ link.page }}</span></li>{% else %}<li class="page-item"><a href="{{ link.href|e('html_attr') }}" class="page-link" aria-label="Страница {{ link.page }}">{{ link.page }}</a></li>{% endif %}{% endfor %}
+{% if next %}<li class="page-item"><a href="{{ next|e('html_attr') }}" class="page-link" aria-label="Следующая страница">→</a></li>{% endif %}
+{% if last %}<li class="page-item"><a href="{{ last|e('html_attr') }}" class="page-link" aria-label="Последняя страница">»</a></li>{% endif %}
+</ul>

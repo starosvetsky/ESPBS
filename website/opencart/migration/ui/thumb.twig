@@ -1,0 +1,4 @@
+<article class="ui-product-row">
+<a class="ui-product-thumb{% if not image_url %} is-placeholder{% endif %}" href="{{ href|e('html_attr') }}" tabindex="-1" aria-hidden="true">{% if image_url %}<img src="{{ image_url|e('html_attr') }}" alt="" loading="lazy" width="80" height="80" referrerpolicy="no-referrer">{% else %}<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.2"><path d="m10 15 14-8 14 8v18l-14 8-14-8zM10 15l14 8 14-8M24 23v18M17 11l14 8"/></svg>{% endif %}</a>
+<div class="ui-product-identity">{% if ui_brand %}<span class="ui-product-brand">{{ ui_brand|e }}</span>{% endif %}<h2><a href="{{ href|e('html_attr') }}">{{ name|e }}</a></h2>{% if model %}<p class="ui-product-model">Артикул <span>{{ model|e }}</span></p>{% endif %}</div><div class="ui-product-action"><a class="ui-text-link" href="{{ href|e('html_attr') }}">Подробнее <span aria-hidden="true">↗</span></a><span>Поставка по запросу</span></div>
+</article>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title|e }}</title><base href="{{ base }}">
+{% if description %}<meta name="description" content="{{ description|e('html_attr') }}">{% endif %}
+{% if energostor_canonical %}<link rel="canonical" href="{{ energostor_canonical|e('html_attr') }}">{% endif %}
+{% if energostor_noindex %}<meta name="robots" content="noindex,follow">{% endif %}
+<meta name="theme-color" content="#0b54a0">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://energostor.ru/#organization","name":"ООО «Энергостор»","url":"https://energostor.ru/","telephone":"+78122009340","email":"info@energostor.ru","taxID":"7805783999","address":{"@type":"PostalAddress","addressCountry":"RU","addressLocality":"Санкт-Петербург","postalCode":"198095","streetAddress":"ул. Ивана Черных, д. 29, литера А, помещение 21-Н, офис 317"}}</script>
+<link rel="icon" href="energostor-theme/assets/img/favicon.ico">
+<link href="{{ bootstrap }}" rel="stylesheet">
+<link rel="stylesheet" href="energostor-theme/assets/css/style.css?v=case7">
+<link rel="stylesheet" href="energostor-theme/assets/css/fonts.css?v=medeo16">
+<link rel="stylesheet" href="energostor-theme/assets/css/home.css?v=account8">
+<link rel="stylesheet" href="energostor-theme/assets/css/navigation.css?v=center14">
+<link rel="stylesheet" href="energostor-theme/release.css?v=1">
+<link rel="stylesheet" href="energostor-theme/assets/css/editorial.css?v=1">
+{% for style in styles %}<link href="{{ style.href }}" rel="stylesheet">{% endfor %}
+<link rel="stylesheet" href="energostor-theme/assets/css/ui.css?v=20261122-2">
+<script src="{{ jquery }}" defer></script>
+</head><body class="energostor-release ui-site"><div id="container">
+<a class="ui-skip" href="#main">Перейти к содержимому</a><div id="alert" role="status"></div>
+<header class="site-header" id="site-header">
+  <div class="topbar"><div class="container topbar__inner"><p class="topbar__address">Санкт-Петербург · Поставки для предприятий и строительных объектов</p><div class="topbar__contacts"><a href="news">Новости и практика</a><a href="mailto:info@energostor.ru">info@energostor.ru</a></div></div></div>
+  <div class="navbar"><div class="container navbar__inner">
+    <a class="logo" href="{{ base }}" aria-label="Энергостор — главная"><img class="logo__img" src="energostor-theme/assets/img/logo-white.svg" alt="Энергостор" width="176" height="27"></a>
+    <form class="ui-global-search" action="index.php" role="search"><input type="hidden" name="route" value="product/search"><label class="ui-sr" for="header-search">Поиск оборудования</label><input id="header-search" name="search" type="search" placeholder="Название, артикул или бренд" required autocomplete="off"><button type="submit" aria-label="Найти оборудование"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button></form>
+    <div class="navbar__actions"><div class="header-phone"><a class="navbar__phone" href="tel:+78122009340">8 (812) 200-93-40</a><button class="header-callback" type="button" data-modal-open="callback">Заказать звонок</button></div><button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu" data-burger><span></span><span></span><span></span></button></div>
+    <nav class="nav" aria-label="Основная навигация"><div class="nav__item nav__item--mega" data-mega><button class="nav__link nav__link--toggle" type="button" aria-expanded="false" aria-controls="mega-menu">Каталог оборудования <span aria-hidden="true">⌄</span></button>
+      __CATALOG_MENU__
+    </div><a class="nav__link" href="brands">По брендам</a><a class="nav__link" href="vendors">Вендоры</a><a class="nav__link" href="about">О компании</a><a class="nav__link" href="partneram">Партнёрам</a><a class="nav__link" href="contacts">Контакты</a><button class="nav__link ui-nav-quote" type="button" data-modal-open="spec">Отправить спецификацию <span aria-hidden="true">↗</span></button></nav>
+  </div></div>
+  <div class="mobile-menu" id="mobile-menu" hidden><nav class="mobile-menu__nav" aria-label="Мобильная навигация"><a href="catalog">Весь каталог</a><a href="brands">По брендам</a><a href="vendors">Вендоры</a><a href="about">О компании</a><a href="partneram">Партнёрам</a><a href="news">Новости и практика</a><a href="contacts">Контакты</a><div class="nav-browser__mobile" data-mobile-categories></div></nav><div class="mobile-menu__footer"><a href="tel:+78122009340">8 (812) 200-93-40</a><a href="mailto:info@energostor.ru">info@energostor.ru</a><button type="button" class="btn btn--primary" data-modal-open="spec">Обсудить спецификацию</button></div></div>
+</header><main id="main" tabindex="-1">

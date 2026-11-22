@@ -1,0 +1,1 @@
+{% macro positions(value) %}{{ value|number_format(0,',',' ') }} {% if value % 100 >= 11 and value % 100 <= 14 %}позиций{% elseif value % 10 == 1 %}позиция{% elseif value % 10 >= 2 and value % 10 <= 4 %}позиции{% else %}позиций{% endif %}{% endmacro %}

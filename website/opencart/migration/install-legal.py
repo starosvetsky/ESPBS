@@ -5,6 +5,7 @@ Uses local MariaDB socket authentication; never prints database credentials.
 Backs up affected information tables and changed files before publishing.
 """
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -73,6 +74,9 @@ def main():
     temporary = routes_path.with_suffix('.legal.tmp')
     temporary.write_text(json.dumps(routes, ensure_ascii=False))
     temporary.replace(routes_path)
+    if '--content-only' in sys.argv:
+        print('Published',len(pages),'legal texts without changing the UI. Backup:',backup)
+        return
     footer = footer.replace(old_consent, new_consent).replace(' method="post" novalidate', ' method="post" enctype="text/plain"')
     footer = footer.replace('<p class="form__note">Заявка откроется в вашем почтовом приложении.</p>', '<p class="form__note">Заявка откроется в вашем почтовом приложении. Перед отправкой ознакомьтесь с <a href="politika" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p>')
     old_link = '<a href="politika">Политика конфиденциальности</a>'
@@ -99,7 +103,9 @@ def main():
     for path in cache.rglob('*'):
         if path.is_file() and (path.name.startswith('cache.information.') or (path.suffix == '.php' and 'template' in path.parts)):
             path.unlink()
-    subprocess.run(['systemctl', 'reload', 'php8.3-fpm'], check=True)
+    settings = subprocess.check_output(['php-fpm8.3','-i'], text=True)
+    if not re.search(r'^opcache.validate_timestamps => On',settings,re.M):
+        subprocess.run(['systemctl', 'reload', 'php8.3-fpm'], check=True)
     print('Published', len(pages), 'legal pages; backup:', backup)
 
 

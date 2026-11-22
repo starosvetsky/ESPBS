@@ -202,7 +202,9 @@ def main():
     for path in cache.rglob('*'):
         if path.is_file() and (path.name.startswith('cache.information.') or (path.suffix=='.php' and 'template' in path.parts)):
             path.unlink()
-    subprocess.run(['systemctl','reload','php8.3-fpm'], check=True)
+    settings = subprocess.check_output(['php-fpm8.3','-i'], text=True)
+    if not re.search(r'^opcache.validate_timestamps => On',settings,re.M):
+        subprocess.run(['systemctl','reload','php8.3-fpm'], check=True)
     print('Published',len(items),'articles. Backup:',backup)
 
 

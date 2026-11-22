@@ -1,0 +1,6 @@
+{{ header }}{% import 'catalog/view/template/ui/macros.twig' as ui %}<section class="container ui-page">
+<nav class="ui-crumbs" aria-label="Хлебные крошки"><a href="./">Главная</a><span>/</span><span aria-current="page">Каталог</span></nav>
+<div class="ui-page-heading"><div><p class="ui-eyebrow">Оборудование для вашего проекта</p><h1>Каталог оборудования</h1><p class="ui-lead">Выберите направление или найдите нужную позицию по артикулу.</p></div><a class="ui-text-link" href="brands">Посмотреть по брендам ↗</a></div>
+<div class="ui-catalog-directory">{% for section in sections %}<a class="ui-category-tile" href="{{ section.url|trim('/') }}"><div><h2>{{ section.title|e }}</h2><p>{{ ui.positions(section.count) }}</p></div><img src="energostor-theme/assets/img/menu-categories/{{ section.slug }}.webp" width="168" height="148" loading="lazy" alt=""><span class="ui-tile-arrow" aria-hidden="true">↗</span></a>{% endfor %}</div>
+<div class="ui-inline-help"><div><h2>Нужна помощь с комплектацией?</h2><p>Отправьте перечень оборудования — проверим артикулы и уточним варианты поставки.</p></div><button class="btn btn--primary" type="button" data-modal-open="spec">Обсудить спецификацию ↗</button></div>
+</section>{{ footer }}
