@@ -1,0 +1,18 @@
+{{ header }}
+<link rel="stylesheet" href="energostor-theme/assets/css/editorial.css?v=1">
+<section class="ed-index container">
+  <nav class="ed-breadcrumbs" aria-label="Хлебные крошки"><a href="./">Главная</a><span>/</span><span>Новости и практика</span></nav>
+  <header class="ed-heading"><p class="ed-kicker">Журнал Энергостора</p><h1>Новости и практика</h1><p>Оборудование, проектирование и снабжение. Что изменилось и что проверить в своём проекте.</p></header>
+  <div class="ed-rule"><span>{{ total }} материалов</span><span>Факты — со ссылками на источники</span></div>
+  <div class="ed-grid">
+    {% for article in articles %}
+    <a class="ed-card" href="{{ article.path|trim('/')|e('html_attr') }}">
+      <div class="ed-card-meta"><span>{{ article.kind|e }} · {{ article.topic|e }}</span><span class="ed-arrow" aria-hidden="true">↗</span></div>
+      <h2>{{ article.title|e }}</h2><p>{{ article.summary|e }}</p>
+      <div class="ed-card-foot"><time datetime="{{ article.published|e('html_attr') }}">{{ article.display_date|e }}</time><span>{{ article.read_minutes }} мин</span></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% if last > 1 %}<nav class="ed-pagination" aria-label="Страницы журнала">{% if previous %}<a href="{{ previous|e('html_attr') }}">← Предыдущая</a>{% endif %}<span>{{ page }} / {{ last }}</span>{% if next %}<a href="{{ next|e('html_attr') }}">Следующая →</a>{% endif %}</nav>{% endif %}
+</section>
+{{ footer }}
