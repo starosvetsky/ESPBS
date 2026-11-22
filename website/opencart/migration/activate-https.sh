@@ -3,8 +3,8 @@
 set -euo pipefail
 expected=136.234.4.214
 for host in energostor.ru www.energostor.ru; do
-    records=$(dig +short A "$host" | awk '/^[0-9.]+$/')
-    if [[ "$records" != "$expected" || -n "$(dig +short AAAA "$host" | awk '/:/')" ]]; then
+    records=$(dig @1.1.1.1 +short A "$host" | awk '/^[0-9.]+$/')
+    if [[ "$records" != "$expected" || -n "$(dig @1.1.1.1 +short AAAA "$host" | awk '/:/')" ]]; then
         echo "Waiting for A/AAAA records of $host"
         exit 0
     fi
