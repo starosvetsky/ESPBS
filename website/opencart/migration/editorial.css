@@ -3,4 +3,3 @@
 /* Bootstrap makes .navbar > .container flex; retain the branded header grid. */
 @media(min-width:901px){.site-header .navbar>.navbar__inner{display:contents}.site-header .logo{min-width:0}.site-header .navbar__inner>.nav{flex-wrap:nowrap}}
 @media(max-width:900px){.site-header .navbar>.navbar__inner{display:flex;width:100%;max-width:none}.site-header .logo{flex:0 0 125px}}
-
