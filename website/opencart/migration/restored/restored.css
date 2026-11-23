@@ -1,10 +1,17 @@
 /* Reference: owner's Energostor.pdf. The shared shell is independent of news. */
-/* The complete desktop opening composition fills the viewport, including header. */
+/* The desktop opening composition targets 70% of the viewport, including header. */
 @media(min-width:901px){
- .energostor-restored .reference-hero{height:calc(100dvh - var(--ui-header-height,152px));grid-template-rows:minmax(0,1fr) clamp(80px,14dvh,164px)}
- .energostor-restored .reference-hero .reference-main{min-height:0;padding-top:clamp(20px,4dvh,70px);padding-bottom:clamp(20px,4dvh,70px)}
+ .energostor-restored .reference-hero{height:calc(70dvh - var(--ui-header-height,152px));min-height:320px;grid-template-rows:minmax(0,1fr) clamp(72px,9dvh,110px)}
+ .energostor-restored .reference-hero .reference-main{min-height:0;padding-top:20px;padding-bottom:20px}
+ .energostor-restored .reference-hero .hero__title{font-size:clamp(26px,4.4dvh,42px);line-height:1.18}
+ .energostor-restored .reference-hero .hero__lead{font-size:14px;line-height:1.4;margin-top:20px}
+ .energostor-restored .reference-hero .hero__actions{margin-top:24px}
+ .energostor-restored .reference-hero .reference-stats{padding-top:24px;padding-bottom:24px}
+ .energostor-restored .reference-hero .stats{gap:18px}
+ .energostor-restored .reference-hero .stats>li{padding-bottom:18px}
  .energostor-restored .reference-hero .partners{min-height:0}
- .energostor-restored .reference-hero .partners__inner{padding-top:16px;padding-bottom:16px}
+ .energostor-restored .reference-hero .partners__inner{padding-top:12px;padding-bottom:12px}
+ .energostor-restored .reference-hero .partners__logo{height:clamp(26px,4.5dvh,50px)}
 }
 @media(min-width:901px) and (max-height:700px){
  .energostor-restored .reference-hero .hero__title{font-size:30px;line-height:1.18}
@@ -140,4 +147,10 @@ body.energostor-restored{margin:0;color:#000;background:#f6f6f6;font-family:var(
 @media(max-width:600px){
  .energostor-restored .reference-stats{grid-row:2;border-left:0;border-top:1px solid #e0e5e9}.energostor-restored .reference-stats .stats{flex-direction:row;gap:16px}.energostor-restored .stats>li{border:0;padding-bottom:0}
  .energostor-restored .container{padding-left:20px;padding-right:20px}.energostor-restored .reference-hero{grid-template-columns:1fr}.energostor-restored .reference-main{min-height:0;padding:42px 20px}.energostor-restored .hero__title{font-size:25px;line-height:1.25}.energostor-restored .hero__lead{font-size:16px;line-height:1.5}.energostor-restored .hero__actions{margin-top:28px;gap:10px}.energostor-restored .hero__actions .btn{width:100%;min-height:48px}.energostor-restored .reference-stats{padding:28px 20px}.energostor-restored .stats{flex-direction:row;gap:14px}.energostor-restored .stats__num{font-size:28px}.energostor-restored .stats__label{font-size:11px;margin-top:12px}.energostor-restored .partners{min-height:0}.energostor-restored .partners__inner{grid-template-columns:repeat(3,minmax(0,1fr));padding:25px 20px;gap:22px}.energostor-restored .partners__logo{height:28px}.energostor-restored .reference-consult{display:none}.energostor-restored .section{padding:42px 0}.energostor-restored .directions .cards{grid-template-columns:1fr 1fr;gap:12px}.energostor-restored .card{padding:18px 14px;min-height:275px}.energostor-restored .card__title{font-size:17px}.energostor-restored .chip{font-size:9px}.energostor-restored .card__img{height:100px}.energostor-restored .section__title{font-size:24px}.energostor-restored .section__lead{font-size:14px;line-height:1.5}.energostor-restored .industries .section__head{margin-bottom:30px}.energostor-restored .industries__grid{grid-template-columns:1fr;gap:30px}.energostor-restored .industry__img{aspect-ratio:1/1.1}.energostor-restored .industry__caption{margin-top:14px}.energostor-restored .industry__title{font-size:17px}.reference-metrics{margin-top:40px;gap:12px}.reference-metrics strong{font-size:28px}.reference-metrics span{font-size:11px}.reference-services{padding:35px 20px 45px}.reference-service-grid{grid-template-columns:1fr 1fr;gap:12px}.reference-service-grid article{padding:20px 14px;min-height:290px}.reference-service-grid h3{font-size:15px;min-height:55px}.reference-service-grid img{height:130px}.reference-service-grid p{font-size:12px;margin-top:12px}.reference-process{padding:45px 20px}.reference-process ol{gap:26px 18px;margin-top:30px}.reference-process h3{font-size:16px}.reference-process li p{font-size:12px;margin-left:0}.reference-final{padding:35px 20px;min-height:600px}.reference-final:before{inset:20px 0}.reference-final>div{width:100%;min-height:480px;margin:0;padding:35px 25px}.reference-final h2{font-size:25px}.reference-final p{font-size:18px;padding-top:65px}.energostor-restored .navbar__phone{font-size:15px}.energostor-restored .header-phone{display:flex}
+}
+@media(min-width:901px) and (min-height:701px) and (max-height:780px){
+ .energostor-restored .reference-hero .hero__title{font-size:26px}
+ .energostor-restored .reference-hero .hero__lead{font-size:13px;margin-top:16px;max-width:none}
+ .energostor-restored .reference-hero .hero__actions{margin-top:16px}
+ .energostor-restored .reference-hero .reference-main{padding-top:12px;padding-bottom:12px}
 }

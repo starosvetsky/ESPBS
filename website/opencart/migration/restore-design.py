@@ -15,6 +15,9 @@ def main():
     backup.mkdir(parents=True,mode=0o700)
     files={source/f'{name}.twig':public/f'catalog/view/template/common/{name}.twig' for name in ['header','home','footer']}
     files[source/'restored.css']=public/'energostor-theme/assets/css/restored.css'
+    files[source/'partners.css']=public/'energostor-theme/assets/css/partners.css'
+    files[source/'partners.twig']=public/'catalog/view/template/information/partners.twig'
+    files[source.parent/'ui/information.twig']=public/'catalog/view/template/information/information.twig'
     for asset in (source/'assets').iterdir():
         if asset.suffix not in ['.png','.svg']:
             continue
