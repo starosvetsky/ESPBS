@@ -69,7 +69,7 @@ def main():
         status, html = fetch(path)
         issues = []
         if status != 200: issues.append('HTTP '+str(status))
-        if '<footer class="ui-footer">' not in html: issues.append('missing shared footer')
+        if '<footer class="site-footer">' not in html: issues.append('missing restored shared footer')
         if html.count('id="site-header"') != 1: issues.append('header count')
         if html.count('id="lead-form"') != 1: issues.append('form count')
         if 'ui.css?v=' not in html or 'ui.js?v=' not in html: issues.append('missing UI assets')
@@ -101,11 +101,11 @@ def main():
                 failures.append({'path':path,'issues':[str(error)]})
             if count % 50 == 0: print('Checked', count, '/', len(paths), flush=True)
     status, html = fetch('/this-page-does-not-exist-ui-check')
-    if status != 404 or '<footer class="ui-footer">' not in html: failures.append({'path':'404','issues':[str(status)]})
+    if status != 404 or '<footer class="site-footer">' not in html: failures.append({'path':'404','issues':[str(status)]})
     retired = [path for path,target in data.get('aliases',{}).items() if target=='']
     for path in retired:
         status,html = fetch(path)
-        if status!=410 or '<footer class="ui-footer">' not in html: failures.append({'path':path,'issues':['retired page '+str(status)]})
+        if status!=410 or '<footer class="site-footer">' not in html: failures.append({'path':path,'issues':['retired page '+str(status)]})
     report = {'checked':len(paths)+1+len(retired),'failures':failures,'unknown_internal_links':sorted(dead_links)}
     target = ROOT/('ui-verification-retired.json' if '--retired-only' in sys.argv else 'ui-verification.json')
     target.write_text(json.dumps(report,ensure_ascii=False,indent=2))

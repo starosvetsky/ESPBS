@@ -138,21 +138,22 @@ def main():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(migration/source, destination)
     home = home_path.read_text()
-    begin = home.index('    <!-- NEWS -->')
-    end = home.index('    <section class="section section--tight">', begin)
-    home = home[:begin]+'''    <!-- NEWS -->
-    <link rel="stylesheet" href="energostor-theme/assets/css/editorial.css?v=1">
-    <section class="section news"><div class="container">
-      <header class="section__head section__head--row"><h2 class="section__title">Новости и практика</h2><a class="news__all" href="news">Все материалы <span aria-hidden="true">→</span></a></header>
-      <div class="ed-home-grid">{% for article in editorial_articles %}
-        <a class="ed-card" href="{{ article.path|trim('/')|e('html_attr') }}">
-          <div class="ed-card-meta"><span>{{ article.kind|e }} · {{ article.topic|e }}</span><span class="ed-arrow" aria-hidden="true">↗</span></div>
-          <h2>{{ article.title|e }}</h2><p>{{ article.summary|e }}</p>
-          <div class="ed-card-foot"><time datetime="{{ article.published|e('html_attr') }}">{{ article.display_date|e }}</time><span>{{ article.read_minutes }} мин</span></div>
-        </a>{% endfor %}</div>
-    </div></section>
+    if not (root/'restored-design.txt').exists():
+        begin = home.index('    <!-- NEWS -->')
+        end = home.index('    <section class="section section--tight">', begin)
+        home = home[:begin]+'''    <!-- NEWS -->
+        <link rel="stylesheet" href="energostor-theme/assets/css/editorial.css?v=1">
+        <section class="section news"><div class="container">
+          <header class="section__head section__head--row"><h2 class="section__title">Новости и практика</h2><a class="news__all" href="news">Все материалы <span aria-hidden="true">→</span></a></header>
+          <div class="ed-home-grid">{% for article in editorial_articles %}
+            <a class="ed-card" href="{{ article.path|trim('/')|e('html_attr') }}">
+              <div class="ed-card-meta"><span>{{ article.kind|e }} · {{ article.topic|e }}</span><span class="ed-arrow" aria-hidden="true">↗</span></div>
+              <h2>{{ article.title|e }}</h2><p>{{ article.summary|e }}</p>
+              <div class="ed-card-foot"><time datetime="{{ article.published|e('html_attr') }}">{{ article.display_date|e }}</time><span>{{ article.read_minutes }} мин</span></div>
+            </a>{% endfor %}</div>
+        </div></section>
 
-''' + home[end:]
+    ''' + home[end:]
     news_link = '<li><a href="news">Новости и практика</a></li>'
     footer_anchor = '<li><a href="politika">Политика персональных данных</a></li>'
     if news_link not in home:
@@ -175,7 +176,7 @@ def main():
     header_path = root/'upload/catalog/view/template/common/header.twig'
     header = header_path.read_text()
     editorial_style = '<link rel="stylesheet" href="energostor-theme/assets/css/editorial.css?v=1">'
-    if editorial_style not in header:
+    if editorial_style not in header and not (root/'restored-design.txt').exists():
         header = header.replace('</head>', editorial_style+'\n</head>')
     for line in [l for l in header.splitlines(keepends=True) if 'energostor_canonical %}' in l or 'energostor_noindex %}' in l or '<link rel="stylesheet"' in l]:
         while header.count(line) > 1:

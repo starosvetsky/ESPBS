@@ -18,6 +18,8 @@ def main():
     root = Path(sys.argv[1]).resolve()
     if root != Path('/opt/energostor-next'):
         raise SystemExit('This installer targets /opt/energostor-next only')
+    if (root/'restored-design.txt').exists():
+        raise SystemExit('Owner restored the PDF reference design. Do not reinstall the superseded UI shell; use restore-design.py for presentation updates.')
     source = Path(__file__).parent/'ui'
     public = root/'upload'
     templates = public/'catalog/view/template'

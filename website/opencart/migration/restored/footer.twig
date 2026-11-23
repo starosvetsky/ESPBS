@@ -1,0 +1,110 @@
+</main>
+<footer class="site-footer">
+    <div class="container">
+      <div class="footer-card">
+        <div class="footer-card__brand">
+          <img src="energostor-theme/assets/img/logo-mark-white.svg" alt="ЭНЕРГОСТОР" width="44" height="44" loading="lazy">
+          <p class="footer-card__tagline">Комплексное снабжение предприятий и&nbsp;строительно-монтажных организаций</p>
+        </div>
+
+        <nav class="footer-card__col" aria-label="Разделы сайта">
+          <h3 class="footer-card__title">Главная</h3>
+          <ul>
+            <li><a href="napravlenya">Направления</a></li>
+            <li><a href="about">О компании</a></li>
+            <li><a href="partneram">Партнерам</a></li>
+            <li><a href="contacts">Контакты</a></li>
+          </ul>
+        </nav>
+
+        <nav class="footer-card__col" aria-label="Направления">
+          <h3 class="footer-card__title">Направления</h3>
+          <ul>
+            <li><a href="electrooborudovanie">Электрооборудование</a></li>
+            <li><a href="takelaj">Такелаж</a></li>
+            <li><a href="ibp">Источники бесперебойного питания</a></li>
+            <li><a href="kns">Кабеленесущие системы (КНС)</a></li>
+            <li><a href="napravlenya">Смотреть все</a></li>
+          </ul>
+        </nav>
+
+        <nav class="footer-card__col" aria-label="Дополнительно">
+          <h3 class="footer-card__title">Дополнительно</h3>
+          <ul>
+            <li><a href="news">Новости и практика</a></li>
+            <li><a href="politika">Политика персональных данных</a></li>
+            <li><a href="mediakit">Медиа-кит</a></li>
+            <li><a href="sitemap">Карта сайта</a></li>
+          </ul>
+        </nav>
+
+        <div class="footer-card__col">
+          <h3 class="footer-card__title">Контакты</h3>
+          <ul>
+            <li><a class="footer-card__phone" href="tel:+78122009340">+7 (812) 200-93-40</a></li>
+            <li><a href="mailto:info@energostor.ru">info@energostor.ru</a></li>
+            <li><a href="contacts">Санкт-Петербург, ул. Ивана Черных, д. 29 литера А, пом. 21-Н, оф. 317</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© <span data-year>2026</span> ООО «ЭНЕРГОСТОР»</p>
+        <nav class="legal-links" aria-label="Правовая информация"><a href="politika">Персональные данные</a><a href="consent">Согласие</a><a href="cookies">Cookies</a><a href="requisites">Реквизиты</a><a href="terms">Условия работы</a></nav>
+      </div>
+    </div>
+  </footer>
+<dialog class="modal" id="modal" aria-labelledby="modal-title">
+    <div class="modal__inner">
+      <button class="modal__close" type="button" aria-label="Закрыть" data-modal-close>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 1l14 14M15 1L1 15" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+      <p class="modal__eyebrow">ЭНЕРГОСТОР</p>
+      <h2 class="modal__title" id="modal-title">Получите бесплатную консультацию от менеджера</h2>
+      <form class="form" id="lead-form" action="mailto:info@energostor.ru" method="post" enctype="text/plain">
+        <input type="hidden" name="subject" id="form-subject" value="Заявка с сайта">
+        <div class="form__row">
+          <label class="field">
+            <span class="field__label">Ваше имя</span>
+            <input class="field__input" type="text" name="name" autocomplete="name" placeholder="Иван Иванов">
+          </label>
+          <label class="field">
+            <span class="field__label">Телефон <span class="field__req">*</span></span>
+            <input class="field__input" type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
+          </label>
+        </div>
+        <div class="form__row">
+          <label class="field">
+            <span class="field__label">Email</span>
+            <input class="field__input" type="email" name="email" autocomplete="email" placeholder="example@mail.com">
+          </label>
+          <label class="field">
+            <span class="field__label">Компания</span>
+            <input class="field__input" type="text" name="company" autocomplete="organization" placeholder="Название компании">
+          </label>
+        </div>
+        <label class="field">
+          <span class="field__label">Какой товар вам нужен?</span>
+          <textarea class="field__input field__input--area" name="message" rows="3" placeholder="Оборудование, объём, сроки или ссылка на спецификацию"></textarea>
+        </label>
+        <label class="check">
+          <input class="check__input" type="checkbox" name="consent" required>
+          <span class="check__box" aria-hidden="true"></span>
+          <span class="check__text">Даю <a href="consent" target="_blank" rel="noopener">согласие на обработку персональных данных</a> для ответа на обращение</span>
+        </label>
+        <button class="btn btn--primary btn--block form__submit" type="submit">Отправить заявку</button>
+        <p class="form__note">Заявка откроется в вашем почтовом приложении. Перед отправкой ознакомьтесь с <a href="politika" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p>
+        <p class="form__status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </dialog>
+</div>
+<script src="energostor-theme/assets/js/main.js?v=legal20261122" defer></script>
+<script src="energostor-theme/assets/catalog/config.js?v=catalog11" defer></script>
+<script src="energostor-theme/assets/catalog/api.js?v=catalog11" defer></script>
+<script src="energostor-theme/catalog-data.js" defer></script>
+<script src="energostor-theme/assets/js/navigation.js?v=category-art13" defer></script>
+<script src="{{ bootstrap }}"></script>
+<script src="energostor-theme/assets/js/ui.js?v=20261122-2" defer></script></body></html>
+
+<style id="legal-page-style">.legal-links{display:flex;flex-wrap:wrap;gap:12px 24px}.footer-bottom{flex-wrap:wrap;gap:20px}.legal-copy{max-width:920px;padding-bottom:56px;line-height:1.65;font-size:17px;color:#263746}.legal-copy h2{font-size:24px;font-weight:500;margin:32px 0 14px}.legal-copy p,.legal-copy ul{margin-bottom:18px}.legal-copy a{color:#0b54a0;text-decoration:underline;text-underline-offset:3px}.legal-copy li{margin-bottom:8px}</style>

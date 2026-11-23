@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html dir="{{ direction }}" lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ title|e }}</title>
+  <base href="{{ base }}"/>
+  {% if description %}
+    <meta name="description" content="{{ description|e('html_attr') }}"/>
+  {% endif %}
+  {% if keywords %}
+    <meta name="keywords" content="{{ keywords }}"/>
+  {% endif %}
+  <script src="{{ jquery }}" type="text/javascript"></script>
+  <link href="{{ bootstrap }}" type="text/css" rel="stylesheet" media="screen"/>
+  <link href="{{ icons }}" rel="stylesheet" type="text/css"/>
+  <link href="{{ stylesheet }}" type="text/css" rel="stylesheet"/>
+  <script src="catalog/view/javascript/common.js" type="text/javascript"></script>
+  {% if icon %}
+    <link rel="icon" href="{{ icon }}" type="image/png">
+  {% endif %}
+  {% for style in styles %}
+    <link href="{{ style.href }}" type="text/css" rel="{{ style.rel }}" media="{{ style.media }}"/>
+  {% endfor %}
+  {% for script in scripts %}
+    <script src="{{ script.href }}" type="text/javascript"></script>
+  {% endfor %}
+  {% if energostor_canonical %}<link rel="canonical" href="{{ energostor_canonical }}">{% endif %}
+  {% if energostor_noindex %}<meta name="robots" content="noindex,follow">{% endif %}
+  {% for link in links %}
+    <link href="{{ link.href }}" rel="{{ link.rel }}"/>
+  {% endfor %}
+  {% for analytic in analytics %}
+    {{ analytic }}
+  {% endfor %}
+
+<link rel="stylesheet" href="energostor-theme/assets/css/style.css?v=case7">
+<link rel="stylesheet" href="energostor-theme/assets/css/fonts.css?v=medeo16">
+<link rel="stylesheet" href="energostor-theme/assets/css/home.css?v=account8">
+<link rel="stylesheet" href="energostor-theme/assets/css/navigation.css?v=center14">
+<link rel="stylesheet" href="energostor-theme/release.css?v=1">
+
+<link rel="stylesheet" href="energostor-theme/assets/css/ui.css?v=20261122-2">
+<link rel="stylesheet" href="energostor-theme/assets/css/restored.css?v=20261123-4">
+</head>
+<body class="energostor-release energostor-restored"><div id="container"><div id="alert"></div>
+<header class="site-header" id="site-header">
+    <div class="topbar">
+      <div class="container topbar__inner"><a class="reference-faq" href="contacts">Часто задаваемые вопросы</a><form class="reference-search" action="index.php" method="get"><input type="hidden" name="route" value="product/search"><input name="search" type="search" aria-label="Поиск оборудования" placeholder="Поиск оборудования"><button type="submit" aria-label="Найти оборудование">⌕</button></form>
+        <p class="topbar__address">
+          <svg class="icon icon--pin" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5c0 3.2 4.5 8.5 4.5 8.5s4.5-5.3 4.5-8.5A4.5 4.5 0 0 0 8 1.5Zm0 6.3a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6Z" fill="currentColor"/></svg>
+          Санкт-Петербург, ул. Ивана Черных, д. 29 литера А, помещение 21-Н, оф. 317
+        </p>
+        <div class="topbar__contacts">
+          <a class="topbar__link" href="contacts">
+            <svg class="icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 1.6c-2.7 0-5 1.4-5 3.2v1.7h10v-1.7c0-1.8-2.3-3.2-5-3.2Z" fill="currentColor"/></svg>
+            Личный кабинет
+          </a>
+          <a class="topbar__link" href="mailto:info@energostor.ru">info@energostor.ru</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="navbar">
+      <div class="container navbar__inner">
+        <a class="logo" href="{{ base }}" aria-label="ЭНЕРГОСТОР — на главную">
+          <img class="logo__img" src="energostor-theme/assets/img/reference/lightning.svg" alt="ЭНЕРГОСТОР" width="176" height="26">
+        </a>
+
+        <nav class="nav" aria-label="Основная навигация">
+          <div class="nav__item nav__item--mega" data-mega>
+            <button class="nav__link nav__link--toggle" type="button" aria-expanded="false" aria-controls="mega-menu">
+              <svg class="catalog-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 2h6v6H2zm10 0h6v6h-6zM2 12h6v6H2zm10 0h6v6h-6z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+              Меню
+              <svg class="nav__chevron" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3.5 5 7l4-3.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+<div class="mega nav-browser" id="mega-menu" hidden data-menu-browser data-base="">
+  <div class="nav-browser__top"><p class="nav-browser__top-title">Каталог оборудования</p><div class="nav-browser__shortcuts"><a href="catalog">Весь каталог ↗</a><a href="brands">По брендам ↗</a><a href="vendors">Вендоры ↗</a></div></div>
+  <div class="nav-browser__layout">
+    <div class="nav-browser__list" data-menu-list aria-label="Направления поставок"></div>
+    <div class="nav-browser__detail"><h2 data-menu-title></h2><p class="nav-browser__note" data-menu-note></p><div class="nav-browser__sections" data-menu-content id="menu-category-content"></div><a class="nav-browser__all" data-menu-all href="napravlenya">Смотреть раздел →</a></div>
+    <aside class="nav-browser__preview" data-menu-preview aria-label="Выбранное направление"><p class="nav-browser__preview-name" data-menu-preview-name></p><span class="nav-browser__preview-number" data-menu-preview-number aria-hidden="true"></span><img class="nav-browser__preview-image" data-menu-image alt="" width="800" height="800" hidden><a class="nav-browser__preview-link" data-menu-preview-link href="electrooborudovanie">Перейти в раздел ↗</a></aside>
+  </div>
+</div>
+          </div>
+          <a class="nav__link" href="about">О компании</a>
+
+
+          <a class="nav__link" href="partneram">Партнёрам</a>
+          <a class="nav__link" href="contacts">Контакты</a>
+          <button class="nav__link" type="button" data-modal-open="kp">Поставка</button>
+        </nav>
+
+        <div class="navbar__actions">
+          <div class="header-phone"><a class="navbar__phone" href="tel:+78122009340">8 (812) 200-93-40</a><button class="header-callback" type="button" data-modal-open="callback">Заказать звонок</button></div>
+          <span class="header-favorite" aria-hidden="true"><svg width="56" height="56" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="4"><path d="M30 51 9 30C-8 10 17-2 30 13 43-2 68 10 51 30Z"/></svg></span><button class="header-account" type="button" data-modal-open="callback" aria-label="Связаться с нами"><svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="9" r="3"/><path d="M6 20a6 6 0 0 1 12 0"/></svg></button>
+          <button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu" data-burger>
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-menu" id="mobile-menu" hidden>
+      <nav class="mobile-menu__nav" aria-label="Мобильная навигация">
+        <div class="nav-browser__mobile" data-mobile-categories></div>
+        <a href="napravlenya">Направления</a>
+        <a href="catalog">Каталог</a><a href="brands">По брендам</a>
+        <a href="vendors">Вендоры</a>
+        <a href="about">О компании</a>
+        <a href="partneram">Партнёрам</a>
+        <a href="mediakit">Медиа-кит</a>
+        <a href="contacts">Контакты</a>
+      </nav>
+      <div class="mobile-menu__footer">
+        <a class="mobile-menu__phone" href="tel:+78122009340">+7 (812) 200-93-40</a>
+        <p>Санкт-Петербург, ул. Ивана Черных, д. 29 литера А, помещение 21-Н, оф. 317</p>
+        <button class="btn btn--primary btn--block" type="button" data-modal-open="kp">Получить КП и сроки</button>
+      </div>
+    </div>
+  </header>
+<main id="main" class="{% if energostor_canonical != 'https://energostor.ru/' %}ui-site{% endif %}">
