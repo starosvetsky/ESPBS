@@ -70,6 +70,7 @@ def main():
     for name in ['category','manufacturer_info','search']:
         put(templates/f'product/{name}.twig', "{% include 'catalog/view/template/ui/listing.twig' %}\n")
     put(public/'energostor-theme/assets/css/ui.css', (source/'ui.css').read_text())
+    put(public/'energostor-theme/assets/css/home-layout.css', (source/'home-layout.css').read_text())
     put(public/'energostor-theme/assets/js/ui.js', (source/'ui.js').read_text())
     put(root/'ui-helpers.php', (source/'ui-helpers.php').read_text())
     routing_path = root/'catalog-routing.php'

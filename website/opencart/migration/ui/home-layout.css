@@ -1,0 +1,71 @@
+/* Preserve the original edge-to-edge homepage; catalogue templates stay independent. */
+.ui-site:has(.reference-hero) .container{max-width:none}
+.ui-site:has(.reference-hero) .reference-hero{width:100%;max-width:none;margin:0;grid-template-columns:74.2% 25.8%;grid-template-rows:auto auto;border-bottom:0}
+.ui-site:has(.reference-hero) .reference-main{min-height:clamp(560px,26.4vw,720px);padding:70px 5.65vw}
+.ui-site:has(.reference-hero) .reference-copy{width:100%;max-width:1180px}
+.ui-site:has(.reference-hero) .hero__title{font-size:clamp(28px,1.85vw,49px);line-height:1.4;max-width:1100px;color:#000}
+.ui-site:has(.reference-hero) .hero__lead{font-size:clamp(17px,.84vw,22px);line-height:1.5;max-width:1030px;margin-top:30px;color:#000}
+.ui-site:has(.reference-hero) .hero__actions{margin-top:48px;gap:28px}
+.ui-site:has(.reference-hero) .hero__actions .btn{min-height:60px;padding:0 34px;font-size:18px;font-weight:400}
+.ui-site:has(.reference-hero) .hero__actions .btn--primary{min-width:260px}
+.ui-site:has(.reference-hero) .hero__actions .btn--text{padding:0 12px}
+.ui-site:has(.reference-hero) .reference-stats{display:flex;align-items:stretch;padding:clamp(35px,3vw,85px) 30px}
+.ui-site:has(.reference-hero) .reference-map{inset:10% 0 auto auto;width:100%;height:85%;object-fit:cover;opacity:.65}
+.ui-site:has(.reference-hero) .reference-stats .stats{display:flex;flex-direction:column;justify-content:space-between;gap:35px;width:100%}
+.ui-site:has(.reference-hero) .stats__num{font-size:clamp(44px,2.8vw,76px);line-height:1.1}
+.ui-site:has(.reference-hero) .stats__label{font-size:clamp(15px,.83vw,22px);margin-top:22px;color:#909090}
+.ui-site:has(.reference-hero) .partners{min-height:275px;grid-column:1;grid-row:2}
+.ui-site:has(.reference-hero) .partners__inner{padding:35px 2.8vw;gap:25px;grid-template-columns:repeat(9,minmax(0,1fr))}
+.ui-site:has(.reference-hero) .partners__logo{width:100%;height:55px;max-width:none;filter:none;opacity:1}
+.ui-site:has(.reference-hero) .reference-consult{display:flex;grid-column:2;grid-row:2;padding:32px 30px 46px;gap:24px}
+.ui-site:has(.reference-hero) .reference-consult>p{font-size:clamp(21px,1.2vw,32px);font-weight:400;line-height:1.4}
+.ui-site:has(.reference-hero) .reference-consult .btn{min-width:min(100%,300px);width:auto;font-size:18px;min-height:60px;font-weight:400}
+@media(max-width:1200px){
+ .ui-site:has(.reference-hero) .reference-hero{grid-template-columns:70% 30%}
+ .ui-site:has(.reference-hero) .reference-main{padding:55px 35px;min-height:550px}
+ .ui-site:has(.reference-hero) .hero__title{font-size:29px}
+ .ui-site:has(.reference-hero) .hero__lead{font-size:17px}
+ .ui-site:has(.reference-hero) .hero__actions{gap:12px;margin-top:32px}
+ .ui-site:has(.reference-hero) .hero__actions .btn{padding:0 18px;font-size:16px;min-height:52px;min-width:0}
+ .ui-site:has(.reference-hero) .reference-stats{padding:40px 22px}
+ .ui-site:has(.reference-hero) .stats__num{font-size:45px}
+ .ui-site:has(.reference-hero) .stats__label{font-size:16px}
+ .ui-site:has(.reference-hero) .partners__inner{gap:14px;padding:28px 22px}
+ .ui-site:has(.reference-hero) .partners__logo{height:35px}
+ .ui-site:has(.reference-hero) .reference-consult{padding:28px 22px}
+ .ui-site:has(.reference-hero) .reference-consult>p{font-size:22px}
+ .ui-site:has(.reference-hero) .reference-consult .btn{min-width:0;width:100%;font-size:16px}
+}
+@media(min-width:601px) and (max-width:900px){
+ .ui-site:has(.reference-hero) .reference-main{padding:40px 28px;min-height:580px}
+ .ui-site:has(.reference-hero) .hero__title{font-size:25px}
+ .ui-site:has(.reference-hero) .hero__lead{font-size:16px;margin-top:24px}
+ .ui-site:has(.reference-hero) .hero__actions{gap:8px}
+ .ui-site:has(.reference-hero) .reference-stats{grid-column:2;grid-row:1;padding:35px 20px}
+ .ui-site:has(.reference-hero) .reference-map{display:block}
+ .ui-site:has(.reference-hero) .stats__num{font-size:36px}
+ .ui-site:has(.reference-hero) .stats__label{font-size:14px}
+ .ui-site:has(.reference-hero) .partners__inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:25px}
+ .ui-site:has(.reference-hero) .reference-consult{gap:18px}
+ .ui-site:has(.reference-hero) .reference-consult>p{font-size:20px}
+}
+@media(max-width:600px){
+ .ui-site:has(.reference-hero) .reference-hero{grid-template-columns:minmax(0,1fr);grid-template-rows:auto}
+ .ui-site:has(.reference-hero) .reference-main{grid-column:1;grid-row:1;padding:42px 20px;min-height:0;background-position:60% center}
+ .ui-site:has(.reference-hero) .hero__title{font-size:25px;line-height:1.4}
+ .ui-site:has(.reference-hero) .hero__lead{font-size:17px}
+ .ui-site:has(.reference-hero) .hero__actions{margin-top:28px;gap:8px}
+ .ui-site:has(.reference-hero) .hero__actions .btn{width:100%;font-size:16px;min-height:52px;min-width:0}
+ .ui-site:has(.reference-hero) .reference-stats{grid-column:1;grid-row:2;padding:28px 20px}
+ .ui-site:has(.reference-hero) .reference-map{display:block;inset:0 0 0 auto;width:65%;height:100%;object-fit:cover;opacity:.35}
+ .ui-site:has(.reference-hero) .reference-stats .stats{flex-direction:row;gap:14px}
+ .ui-site:has(.reference-hero) .stats__num{font-size:30px}
+ .ui-site:has(.reference-hero) .stats__label{font-size:12px;margin-top:12px;max-width:95px}
+ .ui-site:has(.reference-hero) .partners{grid-column:1;grid-row:3;min-height:0}
+ .ui-site:has(.reference-hero) .partners__inner{padding:30px 20px;gap:24px;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .ui-site:has(.reference-hero) .partners__logo{height:28px}
+ .ui-site:has(.reference-hero) .reference-consult{grid-column:1;grid-row:4;padding:28px 20px;display:grid;grid-template-columns:60px minmax(0,1fr);align-items:center;gap:18px}
+ .ui-site:has(.reference-hero) .reference-consult>img{width:60px;height:60px}
+ .ui-site:has(.reference-hero) .reference-consult>p{font-size:22px}
+ .ui-site:has(.reference-hero) .reference-consult .btn{grid-column:1/-1}
+}
