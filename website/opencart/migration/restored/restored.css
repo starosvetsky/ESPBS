@@ -1,4 +1,9 @@
 /* Reference: owner's Energostor.pdf. The shared shell is independent of news. */
+/* Native dialog must not inherit Bootstrap's hidden .modal overlay. */
+.energostor-restored dialog.lead-dialog{position:fixed;inset:0;margin:auto;width:min(680px,calc(100vw - 32px));height:fit-content;max-height:calc(100dvh - 32px);padding:0;border:0;background:#fff;overflow:auto;box-shadow:0 24px 80px #0004;color:#000}
+.energostor-restored dialog.lead-dialog:not([open]){display:none}
+.energostor-restored dialog.lead-dialog[open]{display:block}
+.energostor-restored dialog.lead-dialog::backdrop{background:#0c141c8c;backdrop-filter:blur(3px)}
 body.energostor-restored{margin:0;color:#000;background:#f6f6f6;font-family:var(--font);font-weight:400;line-height:1.4}
 .energostor-restored h1,.energostor-restored h2,.energostor-restored h3,.energostor-restored strong{font-weight:500;letter-spacing:normal;text-transform:none}
 .energostor-restored .container{width:100%;max-width:none;padding-left:3.05vw;padding-right:3.05vw}

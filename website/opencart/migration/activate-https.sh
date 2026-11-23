@@ -44,6 +44,7 @@ server {
     ssl_certificate /etc/letsencrypt/live/energostor.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/energostor.ru/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
+    add_header Content-Security-Policy "upgrade-insecure-requests" always;
     return 301 https://energostor.ru$request_uri;
 }
 server {
@@ -53,6 +54,7 @@ server {
     ssl_certificate /etc/letsencrypt/live/energostor.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/energostor.ru/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
+    add_header Content-Security-Policy "upgrade-insecure-requests" always;
     set $energostor_preview "";
     include /etc/nginx/snippets/energostor-next-storefront.conf;
 }
