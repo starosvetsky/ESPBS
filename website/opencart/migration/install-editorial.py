@@ -158,7 +158,8 @@ def main():
     footer_anchor = '<li><a href="politika">Политика персональных данных</a></li>'
     if news_link not in home:
         home = home.replace(footer_anchor, news_link+'\n            '+footer_anchor)
-    home_path.write_text(home)
+    if not (root/'restored-design.txt').exists():
+        home_path.write_text(home)
     footer = footer_path.read_text()
     if news_link not in footer:
         footer_path.write_text(footer.replace(footer_anchor, news_link+'\n            '+footer_anchor))
@@ -182,7 +183,8 @@ def main():
         while header.count(line) > 1:
             position = header.rfind(line)
             header = header[:position]+header[position+len(line):]
-    header_path.write_text(header)
+    if not (root/'restored-design.txt').exists():
+        header_path.write_text(header)
 
     namespace = 'http://www.sitemaps.org/schemas/sitemap/0.9'
     ET.register_namespace('', namespace)

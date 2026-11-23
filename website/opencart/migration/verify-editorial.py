@@ -31,6 +31,8 @@ def fetch(path):
 
 root = Path('/opt/energostor-next')
 articles = json.loads((root/'articles.json').read_text())
+assert len({a['slug'] for a in articles}) == len(articles), 'Duplicate slug'
+assert len({a['title'].casefold() for a in articles}) == len(articles), 'Duplicate title'
 index = fetch('/news')
 page = Page(index)
 assert page.headings == 1 and page.canonicals == ['https://energostor.ru/news']
@@ -45,8 +47,15 @@ for article in articles:
         assert source['url'] in page.links, (path, source['url'])
     print('OK', path)
 home = fetch('/')
-assert home.count('class="ed-card"') == 4
-assert 'href="news"' in home and 'Все материалы' in home
+if (root/'restored-design.txt').exists():
+    assert 'PDF_REFERENCE_LAYOUT' in home and 'reference-process' in home
+    assert 'class="ed-card"' not in home
+    assert 'restored.css?v=' in home and 'energostor-restored' in home
+else:
+    assert home.count('class="ed-card"') == 4
+    assert 'href="news"' in home and 'Все материалы' in home
+if len(articles) > 20:
+    assert 'ed-card' in fetch('/news?page=2'), 'Missing news pagination'
 assert 'news-card__img' not in home
 assert 'Новости и практика' in fetch('/catalog')
 ET.fromstring(fetch('/sitemap-news.xml'))
