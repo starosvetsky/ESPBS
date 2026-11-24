@@ -169,3 +169,12 @@ body.energostor-restored{margin:0;color:#000;background:#f6f6f6;font-family:var(
 .reference-final .consultation-form .btn{width:100%;margin:0;cursor:pointer}
 .reference-final .consultation-note{font-size:11px;line-height:1.6;color:#aaa}
 @media(max-width:600px){.reference-final .consultation-fields{grid-template-columns:1fr}.reference-final .consultation-form{gap:18px}}
+
+/* Shared scale and alignment for the header outline icons. */
+@media(min-width:901px){
+ .energostor-restored .header-account,.energostor-restored .header-favorite{display:flex;align-items:center;justify-content:center;padding:0;color:#92999e;line-height:1}
+ .energostor-restored .header-account svg,.energostor-restored .header-favorite svg{display:block;width:32px;height:32px;flex:none}
+ .energostor-restored .header-account:hover{color:#0b54a0;background:#0b54a008}
+ .energostor-restored .header-account:focus-visible{outline:2px solid #0b54a0;outline-offset:-8px}
+}
+@media(min-width:901px) and (max-width:1200px){.energostor-restored .header-favorite{display:none}}
