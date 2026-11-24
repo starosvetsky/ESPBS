@@ -1,0 +1,39 @@
+.energostor-restored .engineering-footer{background:#0b54a0;color:#fff;padding:32px 3.05vw 24px;margin:0;border:0;font-weight:400}
+.engineering-footer *{box-sizing:border-box}
+.engineering-footer .ef-frame{border:1px solid #ffffff70;max-width:none;margin:0}
+.engineering-footer a{color:#fff;text-decoration:none;transition:background .18s,color .18s}
+.engineering-footer a:hover{text-decoration:underline;text-underline-offset:4px}
+.engineering-footer :is(a,button):focus-visible{outline:2px solid #fff;outline-offset:5px}
+.ef-top{display:flex;align-items:center;gap:36px;padding:24px 30px;border-bottom:1px solid #ffffff70}
+.ef-brand{display:inline-flex;align-items:center;gap:12px;font-size:27px;line-height:1;font-weight:500}
+.ef-brand img{display:block;object-fit:contain}
+.ef-top>span{font-size:13px;color:#e0eaf5}
+.ef-up{margin-left:auto;font-size:13px;white-space:nowrap}
+.ef-grid{display:grid;grid-template-columns:42% 58%}
+.ef-drawing{position:relative;border-right:1px solid #ffffff70;padding:28px 30px 25px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.ef-caption{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+.ef-drawing>img{display:block;width:100%;height:clamp(230px,23vw,390px);object-fit:contain;margin:10px auto}
+.ef-drawing-note{font-size:13px;line-height:1.5;color:#e0eaf5}
+.ef-content{display:flex;flex-direction:column;min-width:0}
+.ef-links{display:grid;grid-template-columns:1fr 1fr}
+.ef-links nav{padding:28px 32px 30px;display:flex;flex-direction:column;gap:13px}
+.ef-links nav+nav{border-left:1px solid #ffffff70}
+.energostor-restored .ef-links h2{font-size:13px;line-height:1.5;font-weight:400;color:#fff;margin:0 0 12px;padding:0;display:flex;gap:18px}
+.ef-links h2 span{color:#b9d1ea;font-size:11px}
+.ef-links nav>a{font-size:15px;line-height:1.4;width:fit-content}
+.ef-contact{border-top:1px solid #ffffff70;padding:24px 32px 30px;margin-top:auto}
+.ef-label{font-size:11px;color:#c8dcef}
+.ef-contact-main{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:baseline;margin:18px 0 25px}
+.ef-contact-main>a:first-child{font-size:clamp(22px,2.25vw,36px);font-weight:400;line-height:1.2}
+.ef-contact-main>a:last-child{font-size:16px}
+.ef-contact-bottom{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.ef-contact-bottom p{margin:0;color:#e0eaf5;font-size:12px;line-height:1.7}
+.ef-contact-bottom button{background:transparent;border:1px solid #ffffff90;color:#fff;font:inherit;font-size:13px;line-height:1.4;padding:14px 16px;display:flex;gap:24px;align-items:center;cursor:pointer;border-radius:0}
+.ef-contact-bottom button:hover{background:#fff;color:#0b54a0}
+.ef-legal{border-top:1px solid #ffffff70;display:flex;flex-wrap:wrap;gap:14px 30px;padding:20px 30px}
+.ef-legal a{font-size:12px;line-height:1.5;color:#e0eaf5}
+.ef-bottom{border-top:1px solid #ffffff70;display:flex;flex-wrap:wrap;gap:16px 30px;padding:18px 30px;font-size:11px;color:#c8dcef;line-height:1.5}
+.ef-bottom>span:last-child{margin-left:auto}
+@media(min-width:1800px){.ef-links nav{padding:36px 44px}.ef-contact{padding:30px 44px}.ef-links nav>a{font-size:17px}}
+@media(max-width:1000px){.ef-grid{grid-template-columns:35% 65%}.ef-top{gap:24px}.ef-top>span{max-width:220px}.ef-links nav{padding:25px 22px}.ef-contact{padding:24px 22px}.ef-drawing{padding:25px 20px}.ef-caption{flex-direction:column;gap:5px}}
+@media(max-width:700px){.energostor-restored .engineering-footer{padding:20px 16px}.ef-top{padding:22px 18px;flex-wrap:wrap;gap:18px}.ef-brand{font-size:23px}.ef-top>span{order:3;max-width:none;width:100%;font-size:12px}.ef-grid{grid-template-columns:1fr}.ef-drawing{border-right:0;border-bottom:1px solid #ffffff70;padding:22px 18px}.ef-caption{flex-direction:row}.ef-drawing>img{height:230px;max-width:400px}.ef-drawing-note{font-size:12px}.ef-links nav{padding:24px 18px;gap:14px}.ef-links nav>a{font-size:13px}.energostor-restored .ef-links h2{font-size:12px;gap:9px}.ef-contact{padding:24px 18px}.ef-contact-main{flex-direction:column;align-items:flex-start;gap:14px}.ef-contact-main>a:first-child{font-size:27px}.ef-contact-bottom{gap:20px}.ef-contact-bottom button{width:100%;justify-content:space-between}.ef-legal{padding:20px 18px;gap:14px 20px}.ef-legal a{font-size:11px}.ef-bottom{padding:18px;gap:10px 20px}.ef-bottom>span:last-child{width:100%;margin-left:0}}

@@ -16,6 +16,7 @@ def main():
     files={source/f'{name}.twig':public/f'catalog/view/template/common/{name}.twig' for name in ['header','home','footer']}
     files[source/'restored.css']=public/'energostor-theme/assets/css/restored.css'
     files[source/'partners.css']=public/'energostor-theme/assets/css/partners.css'
+    files[source/'footer.css']=public/'energostor-theme/assets/css/footer.css'
     files[source/'partners.twig']=public/'catalog/view/template/information/partners.twig'
     files[source/'assets/favicon.ico']=public/'favicon.ico'
     files[source.parent/'ui/information.twig']=public/'catalog/view/template/information/information.twig'
