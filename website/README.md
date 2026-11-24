@@ -11,6 +11,8 @@
 
 ## Работа с другого компьютера
 
+Подключение к серверу с рабочего компьютера, настройка SSH-ключа и работа с GitHub: [пошаговая инструкция](WORK-ACCESS.md). Текущий сайт `energostor.ru` работает из `/opt/energostor-next/upload`; старые витрины ниже сохранены для справки.
+
 ```powershell
 git clone --branch website --single-branch https://github.com/starosvetsky/ESPBS.git ESPBS-website
 cd ESPBS-website
