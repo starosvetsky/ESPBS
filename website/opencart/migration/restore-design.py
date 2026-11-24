@@ -17,6 +17,7 @@ def main():
     files[source/'restored.css']=public/'energostor-theme/assets/css/restored.css'
     files[source/'partners.css']=public/'energostor-theme/assets/css/partners.css'
     files[source/'partners.twig']=public/'catalog/view/template/information/partners.twig'
+    files[source/'assets/favicon.ico']=public/'favicon.ico'
     files[source.parent/'ui/information.twig']=public/'catalog/view/template/information/information.twig'
     for asset in (source/'assets').iterdir():
         if asset.suffix not in ['.png','.svg']:
