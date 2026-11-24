@@ -154,3 +154,18 @@ body.energostor-restored{margin:0;color:#000;background:#f6f6f6;font-family:var(
  .energostor-restored .reference-hero .hero__actions{margin-top:16px}
  .energostor-restored .reference-hero .reference-main{padding-top:12px;padding-bottom:12px}
 }
+
+/* Inline consultation in the existing black panel. */
+.reference-final .consultation-form{display:grid;gap:20px;text-align:left}
+.reference-final .consultation-form label{display:grid;gap:8px;font-size:13px;line-height:1.45;color:#fff}
+.reference-final .consultation-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-width:0}
+.reference-final .consultation-form input:not([type=checkbox]),.reference-final .consultation-form textarea{display:block;box-sizing:border-box;width:100%;min-width:0;border:1px solid #666;border-radius:0;background:#151515;color:#fff;padding:12px;font:inherit;font-size:14px;line-height:1.5;letter-spacing:normal}
+.reference-final .consultation-form input::placeholder,.reference-final .consultation-form textarea::placeholder{color:#aaa;opacity:1}
+.reference-final .consultation-form textarea{resize:vertical;min-height:100px}
+.reference-final .consultation-form :is(input,textarea,button,a):focus-visible{outline:2px solid #79baff;outline-offset:3px}
+.reference-final .consultation-form .consultation-consent{display:flex;align-items:flex-start;gap:10px;font-size:11px;color:#ccc}
+.reference-final .consultation-consent input{flex:0 0 17px;width:17px;height:17px;margin:2px 0 0;accent-color:#0b54a0}
+.reference-final .consultation-form a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.reference-final .consultation-form .btn{width:100%;margin:0;cursor:pointer}
+.reference-final .consultation-note{font-size:11px;line-height:1.6;color:#aaa}
+@media(max-width:600px){.reference-final .consultation-fields{grid-template-columns:1fr}.reference-final .consultation-form{gap:18px}}

@@ -171,6 +171,19 @@
 
 
 <section class="reference-process"><div><h2>Как строится работа</h2><p>Понятный процесс снижает риск и ускоряет закупку.<br>Вы заранее понимаете, что получите и в какие сроки.</p><ol><li><h3>01 Заявка или спецификация</h3><p>Присылаете ведомость/перечень, дедлайн, регион</p></li><li><h3>02 Подбор и согласование</h3><p>Уточняем параметры, предлагаем аналоги при необходимости</p></li><li><h3>03 Коммерческое предложение</h3><p>Фиксируем состав, сроки, условия</p></li><li><h3>04 Поставка</h3><p>Отгрузка на склад или объект, документы на партию</p></li></ol></div><img src="energostor-theme/assets/img/reference/process-map.png" alt="География поставок по России" loading="lazy"></section>
-<section class="reference-final"><div><h2>Бесплатная консультация от нашего технолога</h2><button class="btn" type="button" data-modal-open="spec">Отправить спецификацию</button><small>Приложите ведомость/перечень позиций</small><p>Сообщите ваши требования и мы предложим оптимальное решение, соответствующее потребностям и вашему бюджету</p></div></section>
+<section class="reference-final"><div><h2 id="consultation-title">Бесплатная консультация от нашего технолога</h2>
+<form class="consultation-form" aria-labelledby="consultation-title" action="mailto:info@energostor.ru" method="post" enctype="text/plain">
+  <input type="hidden" name="subject" value="Консультация с сайта Энергостор">
+  <label>Ваше имя<input type="text" name="name" autocomplete="name" maxlength="120" placeholder="Как к вам обращаться"></label>
+  <div class="consultation-fields">
+    <label>Телефон <span aria-hidden="true">*</span><input type="tel" name="phone" autocomplete="tel" required maxlength="40" placeholder="+7 (___) ___-__-__"></label>
+    <label>Email<input type="email" name="email" autocomplete="email" maxlength="254" placeholder="name@company.ru"></label>
+  </div>
+  <label>Что нужно подобрать?<textarea name="message" rows="3" maxlength="5000" placeholder="Оборудование, количество, сроки или ссылка на спецификацию"></textarea></label>
+  <label class="consultation-consent"><input type="checkbox" name="consent" required value="Согласие на обработку персональных данных для ответа на обращение"><span>Даю <a href="consent" target="_blank" rel="noopener">согласие на обработку персональных данных</a> для ответа на обращение</span></label>
+  <button class="btn" type="submit">Подготовить письмо ↗</button>
+  <div class="consultation-note">Откроется ваше почтовое приложение. Спецификацию можно приложить к письму. <a href="politika" target="_blank" rel="noopener">Политика обработки данных</a>.</div>
+</form>
+</div></section>
 
 {{ footer }}
