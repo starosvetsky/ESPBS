@@ -1,9 +1,250 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 420" fill="none" stroke="#fff" stroke-width="1.1" stroke-linejoin="round">
-<g opacity=".22" stroke-dasharray="3 7"><path d="M30 344h520M65 370V42M510 370V42M20 310l460-265M100 400L550 140"/></g>
-<g opacity=".8"><path d="M130 135 282 47 356 90 204 178ZM130 135v210l74 43 152-88V90M204 178v210M141 145l51 30v192l-51-30ZM217 186l126-73v176l-126 73Z"/>
-<path d="m227 205 105-61m-105 70 105-61m-105 109 105-61m-105 70 105-61m-105 111 105-61m-105 70 105-61"/>
-<path d="m237 187 17-10v34l-17 10Zm28-16 17-10v34l-17 10Zm28-16 17-10v34l-17 10Zm-56 89 17-10v34l-17 10Zm28-16 17-10v34l-17 10Zm28-16 17-10v34l-17 10Zm-56 89 17-10v34l-17 10Zm28-16 17-10v34l-17 10Zm28-16 17-10v34l-17 10Z"/>
-<path d="M158 179v36m12-29v36m-12 16v36m12-29v36m-12 16v22M182 263v19M130 345l-13 8 75 43 164-95v-12"/>
-<path d="m370 202 85-49 56 32-85 49Zm0 0v114l56 32 85-49V185M426 234v114m-47-132 38 22v94l-38-22Zm59 24 60-35v93l-60 35Z"/>
-<path d="m448 252 40-23m-40 32 40-23m-40 51 40-23m-40 32 40-23M391 240v22m12-15v22M370 316l-9 5 65 38 94-54-9-6"/>
-</g><g opacity=".45"><path d="M102 133v212m-7-208 14-8m-14 220 14-8M133 106l148-85m-153 80 10 10m138-95 10 10"/><circle cx="338" cy="324" r="4"/><path d="m342 326 31 18h63M112 75h66l21 21"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 430" width="580" height="430" class="cabinet-blueprint" data-blueprint="" role="img" aria-labelledby="bp-title bp-description" fill="none" stroke="#c8e1f5" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round">
+<title id="bp-title">Телекоммуникационные шкафы — инженерный чертёж</title>
+<desc id="bp-description">Два изометрических шкафа разного размера: коммутационные панели, монтажные стойки, вентиляционные прорези и размерные направляющие. Условная иллюстрация, не монтажная схема.</desc>
+<style>
+.cabinet-blueprint .bp-edge{stroke:#e1effb;stroke-width:1.05}
+.cabinet-blueprint .bp-guide{stroke:#aacce9;stroke-width:.7;stroke-dasharray:2 8;opacity:.24}
+.cabinet-blueprint .bp-guide-cross{stroke-width:.7;opacity:.38}
+.cabinet-blueprint .bp-door{stroke:#d3e8f8;stroke-width:.95}
+.cabinet-blueprint .bp-detail{stroke-width:.7;opacity:.75}
+.cabinet-blueprint .bp-door-seal,.cabinet-blueprint .bp-rail-mark{stroke-width:.55;opacity:.55}
+.cabinet-blueprint .bp-module-case{stroke-width:.85;opacity:.9}
+.cabinet-blueprint .bp-fastener{stroke-width:.65;opacity:.6}
+.cabinet-blueprint .bp-handle{stroke-width:1.2}
+.cabinet-blueprint .bp-dimensions,.cabinet-blueprint .bp-annotations{stroke-width:.65;opacity:.55}
+.cabinet-blueprint .bp-led{fill:#d4eefa;stroke:none}
+</style>
+<g id="bp-background"><path fill="#0b54a0" stroke="none" d="M0 0H580V430H0Z"/></g>
+<g id="bp-construction-guides" class="bp-guides">
+<path class="bp-guide" d="M28 354H554" />
+<path class="bp-guide" d="M57 391V43" />
+<path class="bp-guide" d="M544 368V69" />
+<path class="bp-guide" d="M26 327 520 42" />
+<path class="bp-guide" d="M61 411 550 129" />
+<path class="bp-guide" d="M107 380 534 133" />
+<path class="bp-guide-cross" d="M53 354h8m-4-4v8" />
+<path class="bp-guide-cross" d="M540 354h8m-4-4v8" />
+<path class="bp-guide-cross" d="M102 281h8m-4-4v8" />
+</g>
+<g id="bp-large-cabinet" class="bp-cabinet bp-large-cabinet">
+<g id="bp-large-cabinet-surfaces" class="bp-surfaces">
+<polygon points="174.000 180.000 321.224 95.000 251.942 55.000 104.718 140.000" fill="#ffffff06" stroke="none"/>
+<polygon points="174.000 180.000 104.718 140.000 104.718 348.000 174.000 388.000" fill="#001a3518" stroke="none"/>
+<polygon points="174.000 180.000 321.224 95.000 321.224 303.000 174.000 388.000" fill="#ffffff03" stroke="none"/>
+</g>
+<g id="bp-large-cabinet-structure" class="bp-structure">
+<path class="bp-edge" d="M104.718 140.000 251.942 55.000" pathLength="1" style="--edge-order:0"/>
+<path class="bp-edge" d="M251.942 55.000 321.224 95.000" pathLength="1" style="--edge-order:1"/>
+<path class="bp-edge" d="M321.224 95.000 174.000 180.000" pathLength="1" style="--edge-order:2"/>
+<path class="bp-edge" d="M174.000 180.000 104.718 140.000" pathLength="1" style="--edge-order:3"/>
+<path class="bp-edge" d="M104.718 140.000 104.718 348.000" pathLength="1" style="--edge-order:4"/>
+<path class="bp-edge" d="M174.000 180.000 174.000 388.000" pathLength="1" style="--edge-order:5"/>
+<path class="bp-edge" d="M321.224 95.000 321.224 303.000" pathLength="1" style="--edge-order:6"/>
+<path class="bp-edge" d="M104.718 348.000 174.000 388.000" pathLength="1" style="--edge-order:7"/>
+<path class="bp-edge" d="M174.000 388.000 321.224 303.000" pathLength="1" style="--edge-order:8"/>
+</g>
+<g id="bp-large-cabinet-panels" class="bp-panels" transform="matrix(0.86602540 -.5 0 1 174 180)">
+<path class="bp-door" d="M9 9h152v190h-152Z" />
+<path class="bp-detail bp-door-seal" d="M15 15h140v178h-140Z" />
+<path class="bp-detail" d="M0 215h170v-7M0 208v7" />
+<circle class="bp-fastener" cx="20" cy="20" r="1.5"/>
+<circle class="bp-fastener" cx="20" cy="188" r="1.5"/>
+<circle class="bp-fastener" cx="150" cy="20" r="1.5"/>
+<circle class="bp-fastener" cx="150" cy="188" r="1.5"/>
+<path class="bp-detail" d="M160 38h3v9h-3" />
+<path class="bp-detail" d="M160 100h3v9h-3" />
+<path class="bp-detail" d="M160 166h3v9h-3" />
+<path class="bp-handle" d="M12 110.24000000000001v15m-2-13h4" />
+</g>
+<g id="bp-large-cabinet-modules" class="bp-modules" transform="matrix(0.86602540 -.5 0 1 174 180)">
+<path class="bp-detail" d="M29 28v152M141 28v152" />
+<path class="bp-rail-mark" d="M25 32h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 44h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 56h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 68h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 80h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 92h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 104h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 116h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 128h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 140h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 152h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 164h3m114 0h3" />
+<path class="bp-rail-mark" d="M25 176h3m114 0h3" />
+<g id="bp-patch-panel-1" class="">
+<path class="bp-module-case" d="M33 31h104v23h-104Z" />
+<path class="bp-detail" d="M42 38h12v8h-12Z" />
+<path class="bp-rail-mark" d="M45 46v2h6v-2" />
+<path class="bp-detail" d="M61 38h12v8h-12Z" />
+<path class="bp-rail-mark" d="M64 46v2h6v-2" />
+<path class="bp-detail" d="M80 38h12v8h-12Z" />
+<path class="bp-rail-mark" d="M83 46v2h6v-2" />
+<path class="bp-detail" d="M99 38h12v8h-12Z" />
+<path class="bp-rail-mark" d="M102 46v2h6v-2" />
+<circle class="bp-fastener" cx="36" cy="42.5" r="1.1"/>
+<circle class="bp-fastener" cx="134" cy="42.5" r="1.1"/>
+<path class="bp-rail-mark" d="M117 37h8m-8 4h8m-8 4h8" />
+</g>
+<g id="bp-patch-panel-2" class="">
+<path class="bp-module-case" d="M33 64h104v23h-104Z" />
+<path class="bp-detail" d="M42 71h12v8h-12Z" />
+<path class="bp-rail-mark" d="M45 79v2h6v-2" />
+<path class="bp-detail" d="M61 71h12v8h-12Z" />
+<path class="bp-rail-mark" d="M64 79v2h6v-2" />
+<path class="bp-detail" d="M80 71h12v8h-12Z" />
+<path class="bp-rail-mark" d="M83 79v2h6v-2" />
+<path class="bp-detail" d="M99 71h12v8h-12Z" />
+<path class="bp-rail-mark" d="M102 79v2h6v-2" />
+<circle class="bp-fastener" cx="36" cy="75.5" r="1.1"/>
+<circle class="bp-fastener" cx="134" cy="75.5" r="1.1"/>
+<path class="bp-rail-mark" d="M117 70h8m-8 4h8m-8 4h8" />
+</g>
+<g id="bp-patch-panel-3" class="">
+<path class="bp-module-case" d="M33 97h104v23h-104Z" />
+<path class="bp-detail" d="M42 104h12v8h-12Z" />
+<path class="bp-rail-mark" d="M45 112v2h6v-2" />
+<path class="bp-detail" d="M61 104h12v8h-12Z" />
+<path class="bp-rail-mark" d="M64 112v2h6v-2" />
+<path class="bp-detail" d="M80 104h12v8h-12Z" />
+<path class="bp-rail-mark" d="M83 112v2h6v-2" />
+<path class="bp-detail" d="M99 104h12v8h-12Z" />
+<path class="bp-rail-mark" d="M102 112v2h6v-2" />
+<circle class="bp-fastener" cx="36" cy="108.5" r="1.1"/>
+<circle class="bp-fastener" cx="134" cy="108.5" r="1.1"/>
+<path class="bp-rail-mark" d="M117 103h8m-8 4h8m-8 4h8" />
+</g>
+<g id="bp-patch-panel-4" class="">
+<path class="bp-module-case" d="M33 130h104v23h-104Z" />
+<path class="bp-detail" d="M42 137h12v8h-12Z" />
+<path class="bp-rail-mark" d="M45 145v2h6v-2" />
+<path class="bp-detail" d="M61 137h12v8h-12Z" />
+<path class="bp-rail-mark" d="M64 145v2h6v-2" />
+<path class="bp-detail" d="M80 137h12v8h-12Z" />
+<path class="bp-rail-mark" d="M83 145v2h6v-2" />
+<path class="bp-detail" d="M99 137h12v8h-12Z" />
+<path class="bp-rail-mark" d="M102 145v2h6v-2" />
+<circle class="bp-fastener" cx="36" cy="141.5" r="1.1"/>
+<circle class="bp-fastener" cx="134" cy="141.5" r="1.1"/>
+<path class="bp-rail-mark" d="M117 136h8m-8 4h8m-8 4h8" />
+</g>
+<g id="bp-patch-panel-5" class="">
+<path class="bp-module-case" d="M33 163h104v23h-104Z" />
+<path class="bp-detail" d="M42 170h12v8h-12Z" />
+<path class="bp-rail-mark" d="M45 178v2h6v-2" />
+<path class="bp-detail" d="M61 170h12v8h-12Z" />
+<path class="bp-rail-mark" d="M64 178v2h6v-2" />
+<path class="bp-detail" d="M80 170h12v8h-12Z" />
+<path class="bp-rail-mark" d="M83 178v2h6v-2" />
+<path class="bp-detail" d="M99 170h12v8h-12Z" />
+<path class="bp-rail-mark" d="M102 178v2h6v-2" />
+<circle class="bp-fastener" cx="36" cy="174.5" r="1.1"/>
+<circle class="bp-fastener" cx="134" cy="174.5" r="1.1"/>
+<path class="bp-rail-mark" d="M117 169h8m-8 4h8m-8 4h8" />
+</g>
+</g>
+<g id="bp-large-cabinet-ventilation" class="bp-ventilation" transform="matrix(-0.86602540 -.5 0 1 174 180)">
+<path class="bp-detail" d="M9 9h62v190h-62Z" />
+<path class="bp-detail" d="M20 30v17" />
+<path class="bp-detail" d="M26 30v17" />
+<path class="bp-detail" d="M32 30v17" />
+<path class="bp-detail" d="M20 67v17" />
+<path class="bp-detail" d="M26 67v17" />
+<path class="bp-detail" d="M32 67v17" />
+<path class="bp-detail" d="M20 104v17" />
+<path class="bp-detail" d="M26 104v17" />
+<path class="bp-detail" d="M32 104v17" />
+<path class="bp-detail" d="M20 141v17" />
+<path class="bp-detail" d="M26 141v17" />
+<path class="bp-detail" d="M32 141v17" />
+<path class="bp-detail" d="M20 178v17" />
+<path class="bp-detail" d="M26 178v17" />
+<path class="bp-detail" d="M32 178v17" />
+<path class="bp-detail" d="M0 215h80v-7M80 208H0" />
+</g>
+<g id="bp-large-cabinet-indicators" class="bp-indicators" transform="matrix(0.86602540 -.5 0 1 174 180)">
+<circle cx="131" cy="42" r="1.8" class="bp-led"/>
+<circle cx="131" cy="108" r="1.8" class="bp-led"/>
+<circle cx="131" cy="174" r="1.8" class="bp-led"/>
+</g>
+</g>
+<g id="bp-small-cabinet" class="bp-cabinet bp-small-cabinet">
+<g id="bp-small-cabinet-surfaces" class="bp-surfaces">
+<polygon points="427.000 242.000 510.138 194.000 458.177 164.000 375.038 212.000" fill="#ffffff06" stroke="none"/>
+<polygon points="427.000 242.000 375.038 212.000 375.038 324.000 427.000 354.000" fill="#001a3518" stroke="none"/>
+<polygon points="427.000 242.000 510.138 194.000 510.138 306.000 427.000 354.000" fill="#ffffff03" stroke="none"/>
+</g>
+<g id="bp-small-cabinet-structure" class="bp-structure">
+<path class="bp-edge" d="M375.038 212.000 458.177 164.000" pathLength="1" style="--edge-order:0"/>
+<path class="bp-edge" d="M458.177 164.000 510.138 194.000" pathLength="1" style="--edge-order:1"/>
+<path class="bp-edge" d="M510.138 194.000 427.000 242.000" pathLength="1" style="--edge-order:2"/>
+<path class="bp-edge" d="M427.000 242.000 375.038 212.000" pathLength="1" style="--edge-order:3"/>
+<path class="bp-edge" d="M375.038 212.000 375.038 324.000" pathLength="1" style="--edge-order:4"/>
+<path class="bp-edge" d="M427.000 242.000 427.000 354.000" pathLength="1" style="--edge-order:5"/>
+<path class="bp-edge" d="M510.138 194.000 510.138 306.000" pathLength="1" style="--edge-order:6"/>
+<path class="bp-edge" d="M375.038 324.000 427.000 354.000" pathLength="1" style="--edge-order:7"/>
+<path class="bp-edge" d="M427.000 354.000 510.138 306.000" pathLength="1" style="--edge-order:8"/>
+</g>
+<g id="bp-small-cabinet-panels" class="bp-panels" transform="matrix(0.86602540 -.5 0 1 427 242)">
+<path class="bp-door" d="M9 9h78v94h-78Z" />
+<path class="bp-detail bp-door-seal" d="M15 15h66v82h-66Z" />
+<path class="bp-detail" d="M0 119h96v-7M0 112v7" />
+<circle class="bp-fastener" cx="20" cy="20" r="1.5"/>
+<circle class="bp-fastener" cx="20" cy="92" r="1.5"/>
+<circle class="bp-fastener" cx="76" cy="20" r="1.5"/>
+<circle class="bp-fastener" cx="76" cy="92" r="1.5"/>
+<path class="bp-detail" d="M86 30h3v9h-3" />
+<path class="bp-detail" d="M86 79h3v9h-3" />
+<path class="bp-handle" d="M12 59.36v15m-2-13h4" />
+</g>
+<g id="bp-small-cabinet-modules" class="bp-modules" transform="matrix(0.86602540 -.5 0 1 427 242)">
+<path class="bp-module-case" d="M24 27h48v25h-48Z" />
+<path class="bp-detail" d="M30 34h36" />
+<path class="bp-detail" d="M30 39h36" />
+<path class="bp-detail" d="M30 44h36" />
+<circle class="bp-fastener" cx="27" cy="30" r=".9"/>
+<circle class="bp-fastener" cx="69" cy="30" r=".9"/>
+<path class="bp-module-case" d="M24 62h48v25h-48Z" />
+<path class="bp-detail" d="M30 69h36" />
+<path class="bp-detail" d="M30 74h36" />
+<path class="bp-detail" d="M30 79h36" />
+<circle class="bp-fastener" cx="27" cy="65" r=".9"/>
+<circle class="bp-fastener" cx="69" cy="65" r=".9"/>
+</g>
+<g id="bp-small-cabinet-ventilation" class="bp-ventilation" transform="matrix(-0.86602540 -.5 0 1 427 242)">
+<path class="bp-detail" d="M9 9h42v94h-42Z" />
+<path class="bp-detail" d="M20 27v17" />
+<path class="bp-detail" d="M26 27v17" />
+<path class="bp-detail" d="M32 27v17" />
+<path class="bp-detail" d="M20 65v17" />
+<path class="bp-detail" d="M26 65v17" />
+<path class="bp-detail" d="M32 65v17" />
+<path class="bp-detail" d="M0 119h60v-7M60 112H0" />
+</g>
+<g id="bp-small-cabinet-indicators" class="bp-indicators" transform="matrix(0.86602540 -.5 0 1 427 242)">
+<circle cx="57" cy="34" r="1.8" class="bp-led"/>
+<circle cx="57" cy="69" r="1.8" class="bp-led"/>
+</g>
+</g>
+<g id="bp-dimensions" class="bp-dimensions">
+<path class="bp-dimension-line" d="M74 140V348" />
+<path class="bp-dimension-line" d="M68 144l12-7" />
+<path class="bp-dimension-line" d="M68 352l12-7" />
+<path class="bp-dimension-line" d="M89 140h-15" />
+<path class="bp-dimension-line" d="M89 348h-15" />
+<path class="bp-dimension-line" d="M99 104 246 19" />
+<path class="bp-dimension-line" d="M94 99l10 10" />
+<path class="bp-dimension-line" d="M241 14l10 10" />
+<path class="bp-dimension-line" d="M111 127l-12-23" />
+<path class="bp-dimension-line" d="M258 42l-12-23" />
+<path class="bp-dimension-line" d="M535 194V306" />
+<path class="bp-dimension-line" d="M530 197l10-6" />
+<path class="bp-dimension-line" d="M530 309l10-6" />
+<path class="bp-dimension-line" d="M518 194h17" />
+<path class="bp-dimension-line" d="M518 306h17" />
+</g>
+<g id="bp-technical-details" class="bp-annotations">
+<path class="bp-callout" d="M293 354 333 377H391" />
+<circle class="bp-callout" cx="289" cy="352" r="4"/>
+<path class="bp-callout" d="M41 77H108l24 24M393 137v-13h42" />
+</g>
+</svg>
