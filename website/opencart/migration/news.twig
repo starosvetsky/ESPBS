@@ -7,6 +7,7 @@
   <div class="ed-grid">
     {% for article in articles %}
     <a class="ed-card" href="{{ article.path|trim('/')|e('html_attr') }}">
+      {% if article.image %}<img class="ed-card-image" src="{{ article.image|e('html_attr') }}" alt="" width="1200" height="800" loading="lazy">{% endif %}
       <div class="ed-card-meta"><span>{{ article.kind|e }} · {{ article.topic|e }}</span><span class="ed-arrow" aria-hidden="true">↗</span></div>
       <h2>{{ article.title|e }}</h2><p>{{ article.summary|e }}</p>
       <div class="ed-card-foot"><time datetime="{{ article.published|e('html_attr') }}">{{ article.display_date|e }}</time><span>{{ article.read_minutes }} мин</span></div>

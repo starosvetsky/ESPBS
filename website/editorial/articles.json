@@ -17,7 +17,9 @@
         "title": "IEK: обновление конфигуратора FORMAT",
         "url": "https://www.iek.ru/company/newproducts/novye-funktsii-konfiguratora-nku-format-dlya-bolee-udobnogo-proektirovaniya-uzhe-na-nashem-sayte/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/format-configurator-1-6-5.webp",
+    "image_alt": "Тематическая иллюстрация: Конфигуратор FORMAT обновлён до версии 1.6.5"
   },
   {
     "slug": "iek-bim-libraries-november-2026",
@@ -37,7 +39,9 @@
         "title": "IEK: новые BIM-библиотеки и семейства",
         "url": "https://www.iek.ru/company/newproducts/obnovlenie-bim-bibliotek-i-semeystv-revit-sozdavat-proekty-na-produktsii-iek-teper-eshche-udobnee/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/iek-bim-libraries-november-2026.webp",
+    "image_alt": "Тематическая иллюстрация: IEK обновил библиотеки для Revit, AutoCAD и AVEVA"
   },
   {
     "slug": "oni-fc455-fc850-fc870",
@@ -57,7 +61,9 @@
         "title": "IEK: преобразователи FC-455, FC-850, FC-870",
         "url": "https://www.iek.ru/company/newproducts/preobrazovateli-chastoty-fc-455-fc-850-fc-870-vysokofunktsionalnye-i-nadezhnye-ustroystva-dlya-uprav/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/oni-fc455-fc850-fc870.webp",
+    "image_alt": "Тематическая иллюстрация: ONI представил возможности приводов FC-455, FC-850 и FC-870"
   },
   {
     "slug": "iek-dvo6582-grilyato",
@@ -77,7 +83,9 @@
         "title": "IEK: светильники ДВО 6582",
         "url": "https://www.iek.ru/company/newproducts/svetilniki-dlya-potolkov-grilyato-s-yacheykami-100-100-mm-svoboda-sozdaniya-svetovykh-aktsentov/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/iek-dvo6582-grilyato.webp",
+    "image_alt": "Тематическая иллюстрация: IEK выпустил ДВО 6582 для потолков грильято"
   },
   {
     "slug": "iek-impact-accessories",
@@ -97,7 +105,9 @@
         "title": "IEK: аксессуары IMPACT",
         "url": "https://www.iek.ru/company/newproducts/aksessuary-dlya-kabel-kanalov-impact-professionalnyy-montazh-i-prostaya-rabota-s-provodkoy/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/iek-impact-accessories.webp",
+    "image_alt": "Тематическая иллюстрация: IEK локализовал аксессуары для кабель-каналов IMPACT"
   },
   {
     "slug": "oni-temperature-sensors-update",
@@ -117,7 +127,9 @@
         "title": "IEK: расширение линейки датчиков ONI",
         "url": "https://www.iek.ru/company/newproducts/rasshirenie-assortimenta-datchikov-temperatury-oni-raznoobraznye-resheniya-dlya-raznykh-sfer-primene/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/oni-temperature-sensors-update.webp",
+    "image_alt": "Тематическая иллюстрация: Линейку датчиков температуры ONI дополнили новые исполнения"
   },
   {
     "slug": "oni-plc270-building-automation",
@@ -137,7 +149,9 @@
         "title": "IEK: контроллеры PLC-270 ONI",
         "url": "https://www.iek.ru/company/newproducts/programmiruemye-logicheskie-kontrollery-plc-270-dlya-postroeniya-effektivnykh-sistem-avtomatizatsii/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/oni-plc270-building-automation.webp",
+    "image_alt": "Тематическая иллюстрация: ONI описал контроллеры PLC-270 для автоматизации зданий"
   },
   {
     "slug": "iek-shmp-ip31-depth-300",
@@ -157,7 +171,9 @@
         "title": "IEK: новые габариты ЩМП IP31",
         "url": "https://www.iek.ru/company/newproducts/novye-gabarity-metallicheskikh-korpusov-shchmp-ip31/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/iek-shmp-ip31-depth-300.webp",
+    "image_alt": "Тематическая иллюстрация: Корпуса ЩМП IP31 IEK получили исполнения глубиной 300 мм"
   },
   {
     "slug": "itk-green-patch-cords",
@@ -177,7 +193,9 @@
         "title": "IEK / ITK: патч-корды GREEN",
         "url": "https://www.iek.ru/company/newproducts/rasshirenie-assortimenta-patch-kordov-green-resheniya-proverennye-testerom-fluke/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/itk-green-patch-cords.webp",
+    "image_alt": "Тематическая иллюстрация: ITK расширил ассортимент патч-кордов GREEN"
   },
   {
     "slug": "ups-request-watts-va-runtime",
@@ -196,7 +214,9 @@
         "title": "ГК «Штиль»: рекомендации по выбору ИБП",
         "url": "https://www.shtyl.ru/support/equipment-selection/ups/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/ups-request-watts-va-runtime.webp",
+    "image_alt": "Тематическая иллюстрация: Что указать в заявке на ИБП: мощность и время автономии"
   },
   {
     "slug": "equipment-specification-checklist",
@@ -217,7 +237,9 @@
         "title": "IEK: конфигуратор FORMAT и работа с проектом",
         "url": "https://www.iek.ru/company/newproducts/novye-funktsii-konfiguratora-nku-format-dlya-bolee-udobnogo-proektirovaniya-uzhe-na-nashem-sayte/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/equipment-specification-checklist.webp",
+    "image_alt": "Тематическая иллюстрация: Как подготовить спецификацию для запроса оборудования"
   },
   {
     "slug": "water-supply-pump-request",
@@ -238,7 +260,9 @@
         "title": "Grundfos: основные условия выбора и подбора насоса",
         "url": "https://www.grundfos.com/by/learn/ecademy/all-courses/the-extended-course-on-basic-pump-principles/important-considerations-when-selecting-and-sizing-a-pump"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/water-supply-pump-request.webp",
+    "image_alt": "Тематическая иллюстрация: Какие данные нужны для подбора насоса водоснабжения"
   },
   {
     "slug": "ups-selection-project-data",
@@ -259,7 +283,9 @@
         "title": "ГК «Штиль»: выбор ИБП переменного тока",
         "url": "https://www.shtyl.ru/support/equipment-selection/ups/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/ups-selection-project-data.webp",
+    "image_alt": "Тематическая иллюстрация: Как сравнивать ИБП по требованиям объекта"
   },
   {
     "slug": "hydraulic-component-request",
@@ -280,7 +306,9 @@
         "title": "Bosch Rexroth: гидравлические жидкости и поддержка",
         "url": "https://www.boschrexroth.com/en/gr/service-and-support/hydraulic-fluids/"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/hydraulic-component-request.webp",
+    "image_alt": "Тематическая иллюстрация: Что приложить к запросу на гидравлическое оборудование"
   },
   {
     "slug": "poe-port-and-total-budget",
@@ -300,7 +328,9 @@
         "url": "https://www.dlink.com/en/products/dgs-1100-10mp-10-port-gigabit-poe-smart-managed-switch",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/poe-port-and-total-budget.webp",
+    "image_alt": "Тематическая иллюстрация: PoE: почему мощности одного порта недостаточно"
   },
   {
     "slug": "enclosure-condensation-dew-point",
@@ -320,7 +350,9 @@
         "url": "https://www.rittal.com/com-en/blog/moisture-in-enclosures",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/enclosure-condensation-dew-point.webp",
+    "image_alt": "Тематическая иллюстрация: Конденсат в шкафу: почему одного IP недостаточно"
   },
   {
     "slug": "true-rms-nonlinear-load",
@@ -340,7 +372,9 @@
         "url": "https://www.fluke.com/en/learn/blog/electrical/true-measurements-of-non-linear-loads-require-a-true-rms-measurement-tool",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/true-rms-nonlinear-load.webp",
+    "image_alt": "Тематическая иллюстрация: True RMS: что проверить при выборе токовых клещей"
   },
   {
     "slug": "multimeter-cat-and-voltage",
@@ -360,7 +394,9 @@
         "url": "https://www.fluke.com/en-us/learn/blog/safety/multimeter-guide",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/multimeter-cat-and-voltage.webp",
+    "image_alt": "Тематическая иллюстрация: Мультиметр: почему рядом с CAT указывают напряжение"
   },
   {
     "slug": "terminal-block-conductor-ferrule",
@@ -380,7 +416,9 @@
         "url": "https://www.wago.com/us/topjobs/topjob-s-variants",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/terminal-block-conductor-ferrule.webp",
+    "image_alt": "Тематическая иллюстрация: Клемма и наконечник: как проверить совместимость"
   },
   {
     "slug": "power-supply-derating-curve",
@@ -400,7 +438,9 @@
         "url": "https://www.meanwell.com/Upload/PDF/DRS-240,480-E.PDF",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/power-supply-derating-curve.webp",
+    "image_alt": "Тематическая иллюстрация: Блок питания в шкафу: зачем нужна кривая derating"
   },
   {
     "slug": "rcd-type-not-trip-current",
@@ -420,7 +460,9 @@
         "url": "https://download.se.com/files?p_Doc_Ref=998-20422079&p_File_Ext=.PDF",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/rcd-type-not-trip-current.webp",
+    "image_alt": "Тематическая иллюстрация: УЗО: тип устройства и ток утечки — разные параметры"
   },
   {
     "slug": "motor-nameplate-two-voltages",
@@ -440,7 +482,9 @@
         "url": "https://library.e.abb.com/public/85bb7f53868f4d549e537374c191838b/EN_ACS260-04_B_A4.pdf",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/motor-nameplate-two-voltages.webp",
+    "image_alt": "Тематическая иллюстрация: Двигатель 230/400 и 400/690: почему это не одно и то же"
   },
   {
     "slug": "cable-bending-radius-installation-mode",
@@ -460,7 +504,9 @@
         "url": "https://www.lapp.com/es_MX/mx/e/000962",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/cable-bending-radius-installation-mode.webp",
+    "image_alt": "Тематическая иллюстрация: Радиус изгиба кабеля: сначала определите режим работы"
   },
   {
     "slug": "lighting-cri-task",
@@ -480,7 +526,9 @@
         "url": "https://www.usa.lighting.philips.com/consumer/led-lights/quality-of-light-led-lighting",
         "checked": "2026-11-23"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/lighting-cri-task.webp",
+    "image_alt": "Тематическая иллюстрация: CRI: какой параметр теряется при замене светильника"
   },
   {
     "slug": "enclosure-ip-and-ik-separate-ratings",
@@ -500,6 +548,8 @@
         "url": "https://www.se.com/eg/en/faqs/FA163840/",
         "checked": "2026-11-26"
       }
-    ]
+    ],
+    "image": "/energostor-theme/assets/img/editorial/enclosure-ip-and-ik-separate-ratings.webp",
+    "image_alt": "Тематическая иллюстрация: IP и IK: две разные проверки корпуса"
   }
 ]

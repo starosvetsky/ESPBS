@@ -3,3 +3,5 @@
 /* Bootstrap makes .navbar > .container flex; retain the branded header grid. */
 @media(min-width:901px){.site-header .navbar>.navbar__inner{display:contents}.site-header .logo{min-width:0}.site-header .navbar__inner>.nav{flex-wrap:nowrap}}
 @media(max-width:900px){.site-header .navbar>.navbar__inner{display:flex;width:100%;max-width:none}.site-header .logo{flex:0 0 125px}}
+
+.ed-card-image{display:block;width:100%;aspect-ratio:1.5;object-fit:cover;margin-bottom:20px}.ed-cover{margin:0 0 30px}.ed-cover img{display:block;width:100%;height:auto;aspect-ratio:1.5;object-fit:cover}.ed-cover figcaption{font-size:11px;color:#687985;margin-top:8px}

@@ -67,12 +67,14 @@ def article_html(item, path):
     schema = {'@context':'https://schema.org', '@type':'NewsArticle' if item['kind']=='Новость' else 'Article',
               'headline':item['title'], 'description':item['summary'], 'datePublished':item['published'],
               'dateModified':item.get('updated', item['published']),
+              'image':'https://energostor.ru'+item['image'] if item.get('image') else [],
               'mainEntityOfPage':'https://energostor.ru'+path,
               'author':{'@type':'Organization','name':'Редакция Энергостора'},
               'publisher':{'@type':'Organization','name':'ООО «Энергостор»','url':'https://energostor.ru/'}}
     return ('<link rel="stylesheet" href="/energostor-theme/assets/css/editorial.css?v=1">'
             '<article class="ed-article"><div class="ed-meta">'+''.join('<span>'+escape(v)+'</span>' for v in meta)+'</div>'
-            '<p class="ed-lead">'+escape(item['summary'])+'</p>'
+            +('<figure class="ed-cover"><img src="'+escape(item['image'],quote=True)+'" alt="'+escape(item.get('image_alt',''),quote=True)+'" width="1200" height="800"><figcaption>Тематическая иллюстрация. Не фотография конкретного изделия.</figcaption></figure>' if item.get('image') else '')
+            +'<p class="ed-lead">'+escape(item['summary'])+'</p>'
             +''.join('<p>'+escape(p)+'</p>' for p in item['paragraphs'])
             +'<section class="ed-sources"><h2>Источники</h2><ul>'+source_links+'</ul>'
             '<p class="ed-note">Материал редакции Энергостора. Рекомендации редакции отделены от сообщений производителей. Характеристики конкретного исполнения проверяются по документации.</p></section>'

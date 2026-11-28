@@ -176,7 +176,7 @@
  <div class="hj-heading"><div><span>Энергостор / Журнал</span><h2 id="home-journal-title">Новости и практика</h2></div><a href="news">Все материалы ↗</a></div>
  <div class="hj-layout">{% for article in editorial_articles|slice(0, 5) %}
  <article class="hj-card {% if loop.first %}hj-feature{% endif %}"><a href="{{ article.path|e('html_attr') }}">
- <div class="hj-image"><img src="energostor-theme/assets/img/{% if 'Сет' in article.topic %}ind-telecom.webp{% elseif 'Измер' in article.topic %}card-kip.webp{% else %}ind-industry.webp{% endif %}" alt="" loading="lazy" width="800" height="600"><span>{{ article.kind|e }}</span></div>
+ <div class="hj-image"><img src="{{ article.image|e('html_attr') }}" alt="" loading="lazy" width="800" height="600"><span>{{ article.kind|e }}</span></div>
  <div class="hj-copy"><time>{{ article.display_date|e }}</time><h3>{{ article.title|e }}</h3><p>{{ article.summary|e }}</p><span class="hj-read">Читать материал ↗</span></div>
  </a></article>{% endfor %}</div>
 </section>
