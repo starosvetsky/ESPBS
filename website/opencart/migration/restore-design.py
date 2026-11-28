@@ -11,8 +11,14 @@ def main():
         raise SystemExit('Unexpected release path')
     source=Path(__file__).with_name('restored')
     public=root/'upload'
+    controller=public/'catalog/controller/common/home.php'
+    original_controller=controller.read_text()
     backup=root/'design-backups'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup.mkdir(parents=True,mode=0o700)
+    updated_controller=original_controller.replace('), 0, 4);', '), 0, 5);')
+    if updated_controller != original_controller:
+        shutil.copy2(controller,backup/'home-controller.php')
+        controller.write_text(updated_controller)
     files={source/f'{name}.twig':public/f'catalog/view/template/common/{name}.twig' for name in ['header','home','footer']}
     files[source/'restored.css']=public/'energostor-theme/assets/css/restored.css'
     files[source/'partners.css']=public/'energostor-theme/assets/css/partners.css'
